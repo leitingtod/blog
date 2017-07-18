@@ -5,10 +5,14 @@
   b = { 'b': 'b' }
 
   a.update(b)
-* 类方
+* 类
   class MyClass:
+      name = 'class_var'
+
       def __init__(self):
       构造方法，一个实例创建后会立即调用此函数
+
+      self.name = 'instance.var'
 
       def instance_method(self):
       实例公开方法
@@ -18,12 +22,17 @@
 
       @staticmethod
       def static_mothod():
+      无法调用实例方法
 
       @classmethod
       def class_mothod(classA):
-
       可以通过类或类实例调用，并将该class对象（不是class的实例对象）隐式地 当作
-      第一个参数传入。不能用实例调用。
+      第一个参数传入。不能调用实例方法。
+
+  super: 用于调用父类中的函数
+
+  子类不会自动调用父类中的 __init__ 方法
+
 * 协程、线程、进程
   协程是编译器级的，线程、进程是操作系统级的。
 

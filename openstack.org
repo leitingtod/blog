@@ -34,6 +34,35 @@
 ** 用例
 
 * 知识点
+** 安全策略
+   两大类：
+   - 云平台自身安全
+   - 租户数据安全
+
+   几个方面：
+   - 边界安全
+   - 传输安全
+   - 存储安全
+
+   几个手段：
+   - 安全组
+   - 防火墙
+   - ACL
+** keystone
+   User: 1+ projects
+   Group: 1+ projects
+   Project: 1+ Users
+   Domain: 1+ users, groups, projects
+   Role:
+   Token:
+   Extras:
+   Rule:
+**** 工作流程
+
+** 安全组
+
+** 测试验证
+
 ** ResTFul
     - Client-Sverver
     - 无状态
