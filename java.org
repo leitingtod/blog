@@ -1,0 +1,11 @@
+* Lock 与 synchronized 的区别
+  REFS:
+  1. http://www.cnblogs.com/nsw2018/p/5821738.html
+  2. http://www.cnblogs.com/benshan/p/3551987.html
+
+
+  1.
+  2. synchronized是在JVM层面上实现的，不但可通过一些监控工具监控 synchronized 的
+     锁定，而且代码执行出现异常时，JVM会自动释放锁定。但Lock不行，其是通过代码实
+     现的，要保证锁一定会被释放，就必须将unLock放到 finally {} 中。
+  3.

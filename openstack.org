@@ -1,0 +1,149 @@
+* [[https://docs.openstack.org/arch-design/][架构设计]]
+** 目标
+*** 企业级
+**** 成本
+     成本影响到创建的云平台的类型。除非成本是一个至关重要的因素，否则成本不是一个主要的考虑因素。
+
+     成本分成下面几大类：
+     - 计算资源
+     - 网络资源
+     - 冗余资源
+     - 存储
+     - 管理
+     - 运营成本
+     - 伸缩（规模）成本
+
+     当成本是一个主要因素，规模也比较大时，需要从云平台的各个层面实现最小化成本。
+**** 市场响应
+
+**** 容量规划和伸缩能力
+     容量和负载的可替换性是一个主要的考虑因素。
+**** 性能
+     性能是一个严格的指标，特别是在云的大小和复杂度增长的情况。
+**** 网络
+**** 计费
+**** 安全
+**** 服务质量保证
+**** 认证
+**** 迁移、高可用、容灾
+
+*** 运营
+
+*** 高可用
+** 设计
+** 用例
+
+* 知识点
+** ResTFul
+    - Client-Sverver
+    - 无状态
+    - 可缓存
+    - 分层系统
+    - 统一接口
+    - 支持按需代码
+
+** sqlalchemy
+   SQLAlchemy 是Python 社区最知名的 ORM 工具之一，为高效和高性能的数据库访问设计，
+   实现了完整的企业级持久模型。
+** wsgi
+   WSGI 的官方定义是，the Python Web Server Gateway Interface。从名字就可以看出
+   来，这东西是一个Gateway，也就是网关。网关的作用就是在协议之间进行转换。
+
+   WSGI 是作为 Web 服务器与 Web 应用程序或应用框架之间的一种低级别的接口，以提升
+   可移植 Web 应用开发的共同点。WSGI 是基于现存的 CGI 标准而设计的。
+** django
+** nova创建实例的请求过程
+   1. nova-client 向 keystone 发送请求，获取租户认证 token
+   2. nova-client 向 nova-api 发送请求，验证 image 是否存在
+   3. nova-client 向 nova-api 发送请求，验证 flavor 是否存在
+   4. nova-client 向 nova-api 发送请求，创建实例
+   5. nova-api 响应请求，并通过 RPC 调用 nova-conductor 组件服务
+   6. nova-conductor RPC 调用 nova-scheduler 组件服务，获取在哪台主机上创建实例
+   7. nova-conductor 根据调度结果 RPC 调用 nova-compute 组件服务，在指定的主机上创建实例
+
+   有些请求并不完全经过所有组件，像shelve-instance 在获取认证后，直接向 nova-compute发送RPC调用。
+** 引入 nova-conductor 的原因
+   在Openstack G版以前，Nova的所有服务（包括nova-compute服务）都是直接访问数据库
+   的,这种设计至少存在以下两个问题：
+   - 所有服务与数据模型耦合，当数据模型变更时，可能需要涉及所有代码的调整，并难
+     以支持版本控制。
+   - 所有的主机都能访问数据库，大大增加了数据库的暴露风险。
+
+   为了实现Nova服务与数据库访问解耦，从G版本开始引入了nova-conductor服务，该服务
+   的一个重要作用就是访问数据库，其它服务访问数据库时需要向nova-conductor发起RPC
+   请求，由nova-conductor代理请求数据库。
+
+   以上方式基本解决了服务与数据库访问解耦，并且防止其它服务直接访问数据库，但仍
+   然没有解决对象模型的版本控制。从I版本开始引入了对象模型的概念，所有的对象模型
+   定义在nova/objects。在此之前访问数据库是直接调用数据库的model的，比如更新一个
+   flavor一个字段，调用Flavor的update方法（由sqlalchemy)实现。引入对象模型后，相
+   当于在服务与数据库之间又添加了一级对象层，各个服务直接和资源对象交互，资源对
+   象再和数据库接口交互，数据库返回时也会相应的转化为对象模型中的对象。
+
+   对象模型的对象不仅封装了数据库访问，还支持了版本控制。每个对象都会维护一个版
+   本号，发起RPC请求时必须指定对象的版本号。新版本的对象通常能够兼容旧版本对象，
+   比如nova-conductor升级了使用对象模型版本为1.2，但nova-compute服务可能还没有升
+   级完成，仍然使用的是1.1版本，此时请求返回时会把conductor的返回的对象转化为1.1
+   版本兼容的对象。
+
+   1. nova-compute是nova里最不被信任的服务，避免 nova-compute 直接访问数据库，降
+      低潜在风险
+   2. nova-conductor可横向扩展，配置多个实例
+** 高可用架构中，controller节点通常至少3个，原因是？
+   这是由mysql的多主集群决定的。
+** cinder
+   Cinder 包含如下几个组件：
+
+   cinder-api: 接收 API 请求，调用 cinder-volume 执行操作。
+
+   cinder-volume: 管理 volume 的服务，与 volume provider 协调工作，管理 volume
+   的生命周期。运行 cinder-volume 服务的节点被称作为存储节点。
+
+   cinder-scheduler: scheduler 通过调度算法选择最合适的存储节点创建 volume。
+
+   volume provider: 数据的存储设备，为 volume 提供物理存储空间。 cinder-volume
+   支持多种 volume provider，每种 volume provider 通过自己的 driver 与
+   cinder-volume 协调工作。
+
+
+   Message Queue: Cinder 各个子服务通过消息队列实现进程间通信和相互协作。因为有
+   了消息队列，子服务之间实现了解耦，这种松散的结构也是分布式系统的重要特征。
+
+
+   Database: Cinder 有一些数据需要存放到数据库中，一般使用 MySQL。数据库是安装在
+   控制节点上的，比如在我们的实验环境中，可以访问名称为“cinder”的数据库。
+** neutron
+   neutron-server
+   neutron-plugin
+   - ovs
+   - linux bridge
+
+     二层的虚拟网络设备，功能类似于物理的交换机。它的实现原理是，通过将其他Linux
+     网络设备绑定到自身的Bridge上，并将这些设备虚拟化为端口。为什么我们已经有了
+     OVS，还要有 Linux Bridge 呢?这是因为Linux Bridge实现了qbrxxx设备，提供了OVS
+     无法支持的安全组(Security Group)功能。
+
+   - Ryu
+   - ODL
+   - NSX
+   neutron-agent
+   - L2
+   - L3
+   - DHCP
+   - plgin-in
+   - metering
+
+
+
+** 源码开发
+*** nova
+*** neutron
+*** glance
+*** cinder
+*** keystone
+*** horizon
+*** swift
+** 数据库
+*** mysql
+*** postgresql
+** 英文词汇
