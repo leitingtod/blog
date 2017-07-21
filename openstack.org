@@ -32,7 +32,148 @@
 *** 高可用
 ** 设计
 ** 用例
+* 开发流程
+** [[https://docs.openstack.org/nova/latest/][nova develop]]
+*** [[https://docs.openstack.org/nova/latest/development.environment.html][development.environment]]
+*** [[https://docs.openstack.org/nova/latest/architecture.html][nova system architecture]]
+*** [[https://docs.openstack.org/nova/latest/project_scope.html][project_scope]]
+*** architecture concepts
+**** [[https://docs.openstack.org/nova/latest/rpc.html][AMQP and nova]]
+**** [[https://docs.openstack.org/nova/latest/placement.html][placement api]]
+**** [[https://docs.openstack.org/nova/latest/vmstates.html][vm states]]
+     Building
+     Active
+     Paused/Suspended/Stopped
+     Shelved/Rescued/Resized
+     Shelved_Offloaded
+     Soft_Deleted/Deleted
+     Error
+**** [[https://docs.openstack.org/nova/latest/threading.html][threading model]]
+**** [[https://docs.openstack.org/nova/latest/wsgi.html][using WSGI with nova]]
+     compute and metadata api可以使用内置的HTTP服务器，但为了更好的性能和灵活性，
+     建议使用支持WSGI的通用的HTTP服务器，如 Apache, Nginx
+*** metadata
+**** [[https://docs.openstack.org/nova/latest/vendordata.html][vendordata]]
+**** cloud-init
+     REFS:
+     - http://blog.marvelworld.tk/?p=575
+     - http://blog.csdn.net/gzhouc/article/details/52210150
+     - https://help.ubuntu.com/community/CloudInit
+     - http://www.it165.net/os/html/201404/7848.html
+     - http://cloudinit.readthedocs.io/en/latest/
+***** 为什么要用cloud-init
+      不同种类的设备VM启动总是一件非常麻烦的事情，例如安全设备有WAF、IPS等，每种
+      设备的网络接口、启动脚本互不一样，即便同一种设备，其主机名、网络地址等也不
+      一样。那么如何对这些VM启动过程进行管理，并完成所有数据的配置呢？
+***** 什么是cloud-init
+      cloud-init（简称ci）在AWS、Openstack和Cloudstack上都有使用，所以应该算是事
+      实上的云主机元数据管理标准。
 
+      首先要明确的是cloud-init在工作之前，VM是从DHCP服务器获取到了IP，所有DHCP发
+      现不是cloud-init的事情。当你在Openstack中用ubuntu cloud VM启动卡在
+      cloud-init界面时，多半是因为DHCP还没获取IP，而不是cloud-init本身的问题。那
+      么cloud-init主要走什么呢？它向一台数据服务器获取元数据（meta data）和用户数
+      据（user data），前者是指VM的必要信息，如主机名、网络地址等；后者是系统或用
+      户需要的数据和文件，如用户组信息、启动脚本等。当cloud-init获取这些信息后，
+      开始使用一些模块对数据进行处理，如新建用户、启动脚本等。
+
+
+      cloud-init会查找/etc/cloud/cloud.cfg.d/90_dpkg.cfg中的datasource_list变量，
+      依次使用其中的数据源模块，选择一个可用的数据源模块。如我的配置文件中：
+      datasource_list: [ Nsfocus, NoCloud, AltCloud, CloudStack, ConfigDrive,
+      Ec2, MAAS, OVF, None ]，那么ci首先调用
+      $PYTHON_HOME/dist-packages/cloudinit/sources/DataSourceNsfocus.py中类
+      DataSourceNsfocus的get_data函数，当且仅当访问链接DEF_MD_URL为正常时，这个数
+      据源被认为是OK的。
+
+      在我的实践中，CloudStack的DEF_MD_URL为DHCP的服务器ip，而Openstack和AWS则为
+      一个常值169.254.169.254，然后在宿主机的中做一个iptables重定向，这样就到了我
+      们的服务器监听端口8807。
+
+      如果你想设置其他数据，可参考cloud-init数据源参考的介绍。了解还有哪些处理模
+      块，可读一下/etc/cloud/cloud.cfg文件。
+
+      至此，一些VM所需的常用配置已经搞定，那么如果我们想做一些流程方面的自动下发
+      和运行该怎么做呢？则需要设置一下user_data。
+
+      用户数据包括几类：
+      - 配置文件（Cloud Config Data），类型为Content-Type: text/cloud-config，系
+        统配置文件，如管理用户等，与/etc/cloud下的cloud.cfg最后合并配置项，更多的
+        配置细节参考 配置样例
+      - 启动任务（Upstart Job），类型为Content-Type: text/upstart-job，建立
+        Upstart的服务
+      - 用户数据脚本（User-Data Script），类型为Content-Type: text/x-shellscript，
+        用户自定义的脚本，在启动时执行
+      - 包含文件（Include File），类型为Content-Type: text/x-include-url，该文件
+        内容是一个链接，这个链接的内容是一个文件，（Cloud Boothook），类型为
+        Content-Type: text/cloud-boothook，
+      - 压缩内容（ Gzip Compressed Content），
+      - 处理句柄（Part Handler），类型为Content-Type: text/part-handler，内容为
+        python脚本，根据用户数据文件的类型做相应的处理
+      - 多部分存档（Mime Multi Part archive），当客户端需要下载多个上述用户数据文
+        件时，可用Mime编码为Mime Multi Part archive一次下载
+***** 调度及问题解决
+****** user-data的使用
+       回到OpneStack本身，要把user-data使用起来，要先保证能够在创建的虚拟机内部能
+       够连接到nova的metadata api IP 地址，metadata app IP 沿用了亚马逊所用的
+       169.254.169.254. 在openstack生产环境中， 我们是没有这个IP的， 需要利用以下
+       命令把到169.254.169.254的请求路由到nova的metadata api实际的监听IP和端口上:
+
+       sudo iptables -t nat -A PREROUTING -d 169.254.169.254/32 -p tcp -m
+       tcp--dport 80 -j DNAT --to-destination 10.11.0.16:8775
+
+       注意两个相关的配置项
+       /etc/nova/nova.conf: metadata_listen=10.11.0.16
+       /etc/neutron/metadata_agent.ini: nova_metadata_ip = 10.11.0.16
+
+       把我们需要的脚本、参数配置等等写入文本文件， 通过--user-data 上传到nova
+       metadata server上，然后利用镜像的cloud init注入数据， nova中语法为：
+       nova boot  --user-data /filepath/filename
+
+       在说user-data之前， 要先说下nova 的metadata api, 所谓metadata就是关于虚拟
+       机的元数据，提供这个api主要是为了能够在虚拟机启动的时候能够实现一些信息的
+       初始化。
+
+       在虚拟机内部使用curl命令， 可以得到如下结果, 它们是表示不同版本， 每个版本
+       中包含meta-data和user-data， meta-data 中是包括虚拟机的各种基本信息， 如ip，
+       磁盘，内存，hostname，public key， 安全组等设置， user-data主要是做一些参
+       数设置， 和一些脚本， 如Python脚本， 当用heat boot虚拟机，可以看到这样的
+       user-data例子， user-data是能够实现instance个性化定制的基础， 它书写的格式
+       有很多， 详细看cloud-init章节。
+*** [[https://docs.openstack.org/nova/latest/#advanced-testing-and-guides][advanced testing and guides]]
+** [[https://docs.openstack.org/oslo.messaging/latest/][oslo.messaging]]
+   wiki: https://wiki.openstack.org/wiki/Oslo/Messaging
+*** client
+   通过cast方式的远程调用，请求发送后就直接返回了；通过call方式远程调用，需要等响应从服务器返回。
+
+   1、对于cast调用，没有wait_for_reply，没有timeout，没有notify，也说明cast方式
+   不需要等待consumer的消费和返回值。
+
+   讲完了cast，那么顺便说一下call消息发送的过程。call和cast很像，区别在于：
+   1、call需要等待consumer处理结束，拿到返回值；
+   2、call需要考虑超时和捕获异常；
+   3、对返回消息做反序列化处理；
+*** server
+    1、作为服务端，要在target中定义topic和server，同样需要提供serializer、TRANSPORT、target；
+    2、endpoints，作为接收端，消息来了如何处理？endpoints就是消息最终处理者，endpoint本身是可调用的，nova-compute本身就是一个endpoint；
+    3、executor，见下述描述。
+
+    通俗一点讲，executor确定接收消息的线程模型，transport负责在消息中间件层面接
+    收消息，dispatcher负责最终的消息处理。都是为了代码逻辑而抽象出来的概念。
+
+    一般我们用的executor是eventlet，executor的工作就两件事儿：1、取消息；2、处理
+    消息。
+** oslo.db
+   default MySQL DB API driver is PyMySQL.
+* 计算虚拟化
+** Overview
+   虚拟化类型：
+   - 全虚拟化
+   - 半虚拟化
+   - 硬件辅助虚拟化
+** [[file:kvm.org][KVM]]
+** Libvirt
+* [[file:openstack-networking.org][网络虚拟化]]
 * 知识点
 ** 安全策略
    两大类：

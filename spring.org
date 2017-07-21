@@ -1,0 +1,43 @@
+* SpringMVC的架构设计
+1.1 servlet开发存在的问题：映射问题、参数获取问题、格式化转换问题、返回值处理问题、视图渲染问题
+1.2 SpringMVC为解决上述问题开发的几大组件及接口：HandlerMapping、HandlerAdapter、HandlerMethodArgumentResolver、HttpMessageConverter、Converter、GenericConverter、HandlerMethodReturnValueHandler、ViewResolver、MultipartResolver
+1.3 DispatcherServlet、容器、组件三者之间的关系
+1.4 叙述SpringMVC对请求的整体处理流程
+1.5 SpringBoot
+* SpringAOP源码
+2.1 AOP的实现分类：编译期、字节码加载前、字节码加载后三种时机来实现AOP
+
+2.2 深刻理解其中的角色：AOP联盟、aspectj、jboss AOP、Spring自身实现的AOP、Spring嵌入aspectj。特别是能用代码区分后两者
+
+2.3 接口设计：
+
+AOP联盟定义的概念或接口：Pointcut（概念，没有定义对应的接口）、Joinpoint、Advice、MethodInterceptor、MethodInvocation
+
+SpringAOP针对上述Advice接口定义的接口及其实现类：BeforeAdvice、AfterAdvice、MethodBeforeAdvice、AfterReturningAdvice；针对aspectj对上述接口的实现AspectJMethodBeforeAdvice、AspectJAfterReturningAdvice、AspectJAfterThrowingAdvice、AspectJAfterAdvice。
+
+SpringAOP定义的定义的AdvisorAdapter接口：将上述Advise转化为MethodInterceptor
+
+SpringAOP定义的Pointcut接口：含有两个属性ClassFilter（过滤类）、MethodMatcher（过滤方法）
+
+SpringAOP定义的ExpressionPointcut接口：实现中会引入aspectj的pointcut表达式
+
+SpringAOP定义的PointcutAdvisor接口（将上述Advice接口和Pointcut接口结合起来）
+
+2.4 SpringAOP的调用流程
+
+2.5 SpringAOP自己的实现方式（代表人物ProxyFactoryBean）和借助aspectj实现方式区分
+
+* Spring事务体系源码以及分布式事务Jotm Atomikos源码实现
+3.1 jdbc事务存在的问题
+3.2 Hibernate对事务的改进
+3.3 针对各种各样的事务，Spring如何定义事务体系的接口，以及如何融合jdbc事务和Hibernate事务的
+3.4 三种事务模型包含的角色以及各自的职责
+3.5 事务代码也业务代码分离的实现（AOP+ThreadLocal来实现）
+3.6 Spring事务拦截器TransactionInterceptor全景
+3.7 X/Open DTP模型，两阶段提交，JTA接口定义
+3.8 Jotm、Atomikos的实现原理
+3.9 事务的传播属性
+3.10 PROPAGATION_REQUIRES_NEW、PROPAGATION_NESTED的实现原理以及区别
+3.11 事物的挂起和恢复的原理
+
+* SpringSecurity、shiro、SSO（单点登录）
