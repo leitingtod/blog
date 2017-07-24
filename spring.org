@@ -1,43 +1,147 @@
 * SpringMVC的架构设计
-1.1 servlet开发存在的问题：映射问题、参数获取问题、格式化转换问题、返回值处理问题、视图渲染问题
-1.2 SpringMVC为解决上述问题开发的几大组件及接口：HandlerMapping、HandlerAdapter、HandlerMethodArgumentResolver、HttpMessageConverter、Converter、GenericConverter、HandlerMethodReturnValueHandler、ViewResolver、MultipartResolver
-1.3 DispatcherServlet、容器、组件三者之间的关系
-1.4 叙述SpringMVC对请求的整体处理流程
-1.5 SpringBoot
+  1.1 servlet开发存在的问题：映射问题、参数获取问题、格式化转换问题、返回值处理问题、视图渲染问题
+  1.2 SpringMVC为解决上述问题开发的几大组件及接口：HandlerMapping、HandlerAdapter、HandlerMethodArgumentResolver、HttpMessageConverter、Converter、GenericConverter、HandlerMethodReturnValueHandler、ViewResolver、MultipartResolver
+  1.3 DispatcherServlet、容器、组件三者之间的关系
+  1.4 叙述SpringMVC对请求的整体处理流程
+  1.5 SpringBoot
 * SpringAOP源码
-2.1 AOP的实现分类：编译期、字节码加载前、字节码加载后三种时机来实现AOP
+  2.1 AOP的实现分类：编译期、字节码加载前、字节码加载后三种时机来实现AOP
 
-2.2 深刻理解其中的角色：AOP联盟、aspectj、jboss AOP、Spring自身实现的AOP、Spring嵌入aspectj。特别是能用代码区分后两者
+  2.2 深刻理解其中的角色：AOP联盟、aspectj、jboss AOP、Spring自身实现的AOP、Spring嵌入aspectj。特别是能用代码区分后两者
 
-2.3 接口设计：
+  2.3 接口设计：
 
-AOP联盟定义的概念或接口：Pointcut（概念，没有定义对应的接口）、Joinpoint、Advice、MethodInterceptor、MethodInvocation
+  AOP联盟定义的概念或接口：Pointcut（概念，没有定义对应的接口）、Joinpoint、Advice、MethodInterceptor、MethodInvocation
 
-SpringAOP针对上述Advice接口定义的接口及其实现类：BeforeAdvice、AfterAdvice、MethodBeforeAdvice、AfterReturningAdvice；针对aspectj对上述接口的实现AspectJMethodBeforeAdvice、AspectJAfterReturningAdvice、AspectJAfterThrowingAdvice、AspectJAfterAdvice。
+  SpringAOP针对上述Advice接口定义的接口及其实现类：BeforeAdvice、AfterAdvice、MethodBeforeAdvice、AfterReturningAdvice；针对aspectj对上述接口的实现AspectJMethodBeforeAdvice、AspectJAfterReturningAdvice、AspectJAfterThrowingAdvice、AspectJAfterAdvice。
 
-SpringAOP定义的定义的AdvisorAdapter接口：将上述Advise转化为MethodInterceptor
+  SpringAOP定义的定义的AdvisorAdapter接口：将上述Advise转化为MethodInterceptor
 
-SpringAOP定义的Pointcut接口：含有两个属性ClassFilter（过滤类）、MethodMatcher（过滤方法）
+  SpringAOP定义的Pointcut接口：含有两个属性ClassFilter（过滤类）、MethodMatcher（过滤方法）
 
-SpringAOP定义的ExpressionPointcut接口：实现中会引入aspectj的pointcut表达式
+  SpringAOP定义的ExpressionPointcut接口：实现中会引入aspectj的pointcut表达式
 
-SpringAOP定义的PointcutAdvisor接口（将上述Advice接口和Pointcut接口结合起来）
+  SpringAOP定义的PointcutAdvisor接口（将上述Advice接口和Pointcut接口结合起来）
 
-2.4 SpringAOP的调用流程
+  2.4 SpringAOP的调用流程
 
-2.5 SpringAOP自己的实现方式（代表人物ProxyFactoryBean）和借助aspectj实现方式区分
+  2.5 SpringAOP自己的实现方式（代表人物ProxyFactoryBean）和借助aspectj实现方式区分
 
 * Spring事务体系源码以及分布式事务Jotm Atomikos源码实现
-3.1 jdbc事务存在的问题
-3.2 Hibernate对事务的改进
-3.3 针对各种各样的事务，Spring如何定义事务体系的接口，以及如何融合jdbc事务和Hibernate事务的
-3.4 三种事务模型包含的角色以及各自的职责
-3.5 事务代码也业务代码分离的实现（AOP+ThreadLocal来实现）
-3.6 Spring事务拦截器TransactionInterceptor全景
-3.7 X/Open DTP模型，两阶段提交，JTA接口定义
-3.8 Jotm、Atomikos的实现原理
-3.9 事务的传播属性
-3.10 PROPAGATION_REQUIRES_NEW、PROPAGATION_NESTED的实现原理以及区别
-3.11 事物的挂起和恢复的原理
+  3.1 jdbc事务存在的问题
+  3.2 Hibernate对事务的改进
+  3.3 针对各种各样的事务，Spring如何定义事务体系的接口，以及如何融合jdbc事务和Hibernate事务的
+  3.4 三种事务模型包含的角色以及各自的职责
+  3.5 事务代码也业务代码分离的实现（AOP+ThreadLocal来实现）
+  3.6 Spring事务拦截器TransactionInterceptor全景
+  3.7 X/Open DTP模型，两阶段提交，JTA接口定义
+  3.8 Jotm、Atomikos的实现原理
+  3.9 事务的传播属性
+  3.10 PROPAGATION_REQUIRES_NEW、PROPAGATION_NESTED的实现原理以及区别
+  3.11 事物的挂起和恢复的原理
 
 * SpringSecurity、shiro、SSO（单点登录）
+* Spring容器中的Bean几种初始化方法和销毁方法的先后顺序
+  REFS:
+  - http://blog.csdn.net/caihaijiang/article/details/8629725
+  - http://blog.csdn.net/sd0902/article/details/8393837
+
+  Spring 容器中的 Bean 是有生命周期的，spring 允许 Bean 在初始化完成后以及销毁前
+  执行特定的操作。下面是常用的三种指定特定操作的方法：
+  - 通过实现InitializingBean/DisposableBean 接口来定制初始化之后/销毁之前的操作
+    方法；
+  - 通过<bean> 元素的 init-method/destroy-method属性指定初始化之后 /销毁之前调用
+    的操作方法；
+  - 在指定方法上加上@PostConstruct或@PreDestroy注解来制定该方法是在初始化之后还
+    是销毁之前调用。
+
+  Bean在实例化的过程中：Constructor > @PostConstruct >InitializingBean > init-method
+  Bean在销毁的过程中：@PreDestroy > DisposableBean > destroy-method
+* Spring IoC
+  REFS:
+  - http://www.cnblogs.com/yxh1008/p/6012230.html
+
+  Ioc—Inversion of Control，即“控制反转”，不是什么技术，而是一种设计思想。在
+  Java开发中，Ioc意味着将你设计好的对象交给容器控制，而不是传统的在你的对象内部
+  直接控制。如何理解好Ioc呢？理解好Ioc的关键是要明确“谁控制谁，控制什么，为何是
+  反转（有反转就应该有正转了），哪些方面反转了”，那我们来深入分析一下：
+
+ 　1. 谁控制谁，控制什么：传统Java SE程序设计，我们直接在对象内部通过new进行创建
+      对象，是程序主动去创建依赖对象；而IoC是有专门一个容器来创建这些对象，即由
+      Ioc容器来控制对 象的创建；谁控制谁？当然是IoC 容器控制了对象；控制什么？那
+      就是主要控制了外部资源获取（不只是对象包括比如文件等）。
+
+　　2. 为何是反转，哪些方面反转了：有反转就有正转，传统应用程序是由我们自己在对
+      象中主动控制去直接获取依赖对象，也就是正转；而反转则是由容器来帮忙创建及注
+      入依赖对象；为何是反转？因为由容器帮我们查找及注入依赖对象，对象只是被动的
+      接受依赖对象，所以是反转；哪些方面反转了？依赖对象的获取被反转了。
+
+   IoC 不是一种技术，只是一种思想，一个重要的面向对象编程的法则，它能指导我们如
+   何设计出松耦合、更优良的程序。传统应用程序都是由我们在类内部主动创建依赖对象，
+   从而导致类与类之间高耦合，难于测试；有了IoC容器后，把创建和查找依赖对象的控制
+   权交给了容器，由容器进行注入组合对象，所以对象与对象之间是 松散耦合，这样也方
+   便测试，利于功能复用，更重要的是使得程序的整个体系结构变得非常灵活。
+
+   其实IoC对编程带来的最大改变不是从代码上，而是从思想上，发生了“主从换位”的变
+   化。应用程序原本是老大，要获取什么资源都是主动出击，但是在IoC/DI思想中，应用
+   程序就变成被动的了，被动的等待IoC容器来创建并注入它所需要的资源了。
+
+   IoC很好的体现了面向对象设计法则之一—— 好莱坞法则：“别找我们，我们找你”；即
+   由IoC容器帮对象找相应的依赖对象并注入，而不是由对象主动去找。
+
+   那么，IoC容器到底是如何从初始化完成的BeanFactory中对Bean进行创建并初始化的呢？
+
+   整个过程最主要的就是AbstractAutowireCapableBeanFactory.java类中两个方法，一是
+   createBeanInstance方法，用于创建Bean，二是initializeBean方法，用于初始化Bean。
+* Spring AOP 原理
+  REFS:
+  - http://doflex.iteye.com/blog/2088777
+  AOP（Aspect-OrientedProgramming，面向方面编程），可以说是OOP（Object-Oriented
+  Programing，面向对象编程）的补充和完善。OOP引入封装、继承和多态性等概念来建立
+  一种对象层次结构，用以模拟公共行为的一个集合。当我们需要为分散的对象引入公共行
+  为的时候，OOP则显得无能为力。也就是说，OOP允许你定义从上到下的关系，但并不适合
+  定义从左到右的关系。例如日志功能。日志代码往往水平地散布在所有对象层次中，而与
+  它所散布到的对象的核心功能毫无关系。对于其他类型的代码，如安全性、异常处理和透
+  明的持续性也是如此。这种散布在各处的无关的代码被称为横切（cross-cutting）代码，
+  在OOP设计中，它导致了大量代码的重复，而不利于各个模块的重用。
+
+  而AOP技术则恰恰相反，它利用一种称为“横切”的技术，剖解开封装的对象内部，并将
+  那些影响了多个类的公共行为封装到一个可重用模块，并将其名为“Aspect”，即方面。
+  所谓“方面”，简单地说，就是将那些与业务无关，却为业务模块所共同调用的逻辑或责
+  任封装起来，便于减少系统的重复代码，降低模块间的耦合度，并有利于未来的可操作性
+  和可维护性。AOP代表的是一个横向的关系，如果说“对象”是一个空心的圆柱体，其中
+  封装的是对象的属性和行为；那么面向方面编程的方法，就仿佛一把利刃，将这些空心圆
+  柱体剖开，以获得其内部的消息。而剖开的切面，也就是所谓的“方面”了。然后它又以
+  巧夺天功的妙手将这些剖开的切面复原，不留痕迹。
+
+  使用“横切”技术，AOP把软件系统分为两个部分：核心关注点和横切关注点。业务处理
+  的主要流程是核心关注点，与之关系不大的部分是横切关注点。横切关注点的一个特点是，
+  他们经常发生在核心关注点的多处，而各处都基本相似。比如权限认证、日志、事务处理。
+  Aop 的作用在于分离系统中的各种关注点，将核心关注点和横切关注点分离开来。正如
+  Avanade公司的高级方案构架师Adam Magee所说，AOP的核心思想就是“将应用程序中的商
+  业逻辑同对其提供支持的通用服务进行分离。”
+
+  实现AOP的技术，主要分为两大类：一是采用动态代理技术，利用截取消息的方式，对该
+  消息进行装饰，以取代原有对象行为的执行；二是采用静态织入的方式，引入特定的语法
+  创建“方面”，从而使得编译器可以在编译期间织入有关“方面”的代码。
+** AOP使用场景
+   AOP用来封装横切关注点，具体可以在下面的场景中使用:
+
+   Authentication 权限
+   Caching 缓存
+   Context passing 内容传递
+   Error handling 错误处理
+   Lazy loading　懒加载
+   Debugging　　调试
+   logging, tracing, profiling and monitoring　记录跟踪　优化　校准
+   Performance optimization　性能优化
+   Persistence　　持久化
+   Resource pooling　资源池
+   Synchronization　同步
+   Transactions 事务
+
+   可以通过配置文件或者编程的方式来使用Spring AOP。
+
+   Spring提供了两种方式来生成代理对象: JDKProxy和Cglib，具体使用哪种方式生成由
+   AopProxyFactory根据AdvisedSupport对象的配置来决定。默认的策略是如果目标类是接
+   口，则使用JDK动态代理技术，否则使用Cglib来生成代理。
