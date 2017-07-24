@@ -32,3 +32,11 @@
    - 进程管理也必须处处相同，进程如何建立、撤销、启动、停止都不能因为机器不同而不同
    - 在任何地方，文件系统也必须看起来是相同的
    - 在系统的所有地方都使用相同的系统调用接口
+* 大型网站架构
+  REFS:
+  - http://lib.csdn.net/base/architecture
+** 基本原理及高可用策略
+** 拜占庭将军问题深入探讨
+   REFS:
+   - http://www.8btc.com/baizhantingjiangjun
+   - https://www.zhihu.com/question/23167269/answer/42345736
