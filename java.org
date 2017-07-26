@@ -2,7 +2,8 @@
   REFS:
   - http://blog.csdn.net/u013551462/article/details/50956090
   - http://www.cs.umd.edu/~pugh/java/memoryModel/jsr-133-faq.html
-  - http://www.tvtv223.com/so/8/default/8.html
+  - *http://www.tvtv223.com/so/8/default/8.html*
+
   Java语言（java.long.*）
   Java集合框架（java.util.*）
   Java I/O（java.io.*、java.nio.*.*）
@@ -336,12 +337,57 @@
 ** 线程池
    REFS:
    - http://blog.csdn.net/ghsau/article/details/7443324
+   - http://www.cnblogs.com/nullzx/p/5175574.html
+   - http://www.cnblogs.com/aaron911/p/6213808.html
 
-   四种不同的线程池：
-   - Fixed
-   - Cached
-   - Single
-   - Scheduled
+*** 工作原理
+    线程池的工作模型主要两部分组成，一部分是运行Runnable的Thread对象，另一部分就
+    是阻塞队列。
+
+    由线程池创建的Thread对象其内部的run方法会通过阻塞队列的take方法获取一个
+    Runnable对象，然后执行这个Runnable对象的run方法（即，在Thread的run方法中调用
+    Runnable对象的run方法）。当Runnable对象的run方法执行完毕以后，Thread中的run
+    方法又循环的从阻塞队列中获取下一个Runnable对象继续执行。这样就实现了Thread对
+    象的重复利用，也就减少了创建线程和销毁线程所消耗的资源。
+
+    当需要向线程池提交任务时会调用阻塞队列的offer方法向队列的尾部添加任务。提交
+    的任务实际上就是是Runnable对象或Callable对象。
+
+    上述仅仅是最简略的线程池工作模型，但体现了线程池的核心思想，而至于线程池中线
+    程的动态的创建和自行销毁、动态调整实际工作的线程数、阻塞队列的排队策略以及队
+    列的长度等等细节问题会在本博客中“线程池 ThreadPoolExecutor、Executors源代码
+    分析”的文章中详细介绍。
+*** 四种不同的线程池
+**** FixedThreadPool
+     一个指定工作线程数量的线程池。每当提交一个任务就创建一个工作线程，如果工作
+     线程数量达到线程池初始的最大数，则将提交的任务存入到池队列中。
+
+     FixedThreadPool是一个典型且优秀的线程池，它具有线程池提高程序效率和节省创建
+     线程时所耗的开销的优点。但是，在线程池空闲时，即线程池中没有可运行任务时，
+     它不会释放工作线程，还会占用一定的系统资源。
+
+**** Cached
+     一个可缓存线程池，如果线程池长度超过处理需要，可灵活回收空闲线程，若无可回
+     收，则新建线程。
+
+     这种类型的线程池特点是：
+     - 工作线程的创建数量几乎没有限制(其实也有限制的,数目为Interger. MAX_VALUE),
+       这样可灵活的往线程池中添加线程。
+     - 如果长时间没有往线程池中提交任务，即如果工作线程空闲了指定的时间(默认为1
+       分钟)，则该工作线程将自动终止。终止后，如果你又提交了新的任务，则线程池重
+       新创建一个工作线程。
+     - 在使用CachedThreadPool时，一定要注意控制任务的数量，否则，由于大量线程同
+       时运行，很有会造成系统瘫痪。
+
+**** SingleThreadExecutor
+     创建一个单线程化的Executor，即只创建唯一的工作者线程来执行任务，它只会用唯
+     一的工作线程来执行任务，保证所有任务按照指定顺序(FIFO, LIFO, 优先级)执行。
+     如果这个线程异常结束，会有另一个取代它，保证顺序执行。单工作线程最大的特点
+     是可保证顺序地执行各个任务，并且在任意给定的时间不会有多个线程是活动的。
+
+**** ScheduleThreadPool
+     创建一个定长的线程池，而且支持定时的以及周期性的任务执行，支持定时及周期性
+     任务执行。
 ** CAS
 *** CAS指令
     CAS指的是现代 CPU 广泛支持的一种对内存中的共享数据进行操作的一种特殊指令。这
@@ -617,6 +663,123 @@
     排序的，当然其底层的实现也有本质的区别，如HashMap底层是一个哈希表，而TreeMap
     的底层数据结构是一棵树。
 
+** ThreadLocal
+   REFS:
+   - http://www.iteye.com/topic/103804
+
+   ThreadLocal不是用来解决对象共享访问问题的，而主要是提供了保持对象的方法和避免
+   参数传递的方便的对象访问方式。归纳了两点：
+   1. 每个线程中都有一个自己的ThreadLocalMap类对象，可以将线程自己的对象保持到其
+      中，各管各的，线程可以正确的访问到自己的对象。
+   2. 将一个共用的ThreadLocal静态实例作为key，将不同对象的引用保存到不同线程的
+      ThreadLocalMap中，然后在线程执行的各处通过这个静态ThreadLocal实例的get()方
+      法取得自己线程保存的那个对象，避免了将这个对象作为参数传递的麻烦。
+
+   当然如果要把本来线程共享的对象通过ThreadLocal.set()放到线程中也可以，可以实现
+   避免参数传递的访问方式，但是要注意get()到的是那同一个共享对象，并发访问问题要
+   靠其他手段来解决。但一般来说线程共享的对象通过设置为某类的静态变量就可以实现
+   方便的访问了，似乎没必要放到线程中。
+
+   ThreadLocal的应用场合，我觉得最适合的是按线程多实例（每个线程对应一个实例）的
+   对象的访问，并且这个对象很多地方都要用到。
+
+** Semaphore（信号量）
+   用来控制同时访问特定资源的线程数量，它通过协调各个线程，以保证合理的使用公共
+   资源。很多年以来，我都觉得从字面上很难理解Semaphore所表达的含义，只能把它比作
+   是控制流量的红绿灯，比如XX马路要限制流量，只允许同时有一百辆车在这条路上行使，
+   其他的都必须在路口等待，所以前一百辆车会看到绿灯，可以开进这条马路，后面的车
+   会看到红灯，不能驶入XX马路，但是如果前一百辆中有五辆车已经离开了XX马路，那么
+   后面就允许有5辆车驶入马路，这个例子里说的车就是线程，驶入马路就表示线程在执行，
+   离开马路就表示线程执行完成，看见红灯就表示线程被阻塞，不能执行。
+
+   应用场景
+
+   Semaphore可以用于做流量控制，特别公用资源有限的应用场景，比如数据库连接。假如
+   有一个需求，要读取几万个文件的数据，因为都是IO密集型任务，我们可以启动几十个
+   线程并发的读取，但是如果读到内存后，还需要存储到数据库中，而数据库的连接数只
+   有10个，这时我们必须控制只有十个线程同时获取数据库连接保存数据，否则会报错无
+   法获取数据库连接。这个时候，我们就可以使用Semaphore来做流控
+** CountDownLatch
+   Java并发API提供这样的类，它允许1个或者多个线程一直等待，直到一组操作执行完成。
+   这个类就是CountDownLatch类。它初始一个整数值，此值是线程将要等待的操作数。当
+   某个线程为了想要执行这些操作而等待时， 它要使用 await()方法。此方法让线程进入
+   休眠直到操作完成。 当某个操作结束，它使用countDown() 方法来减少CountDownLatch
+   类的内部计数器。当计数器到达0时，这个类会唤醒全部使用await() 方法休眠的线程们。
+** CyclicBarrier
+   和CountDownLatch一样，都是关于线程的计数器。
+   - CyclicBarrier初始化时规定一个数目，然后计算调用了CyclicBarrier.await()进入
+     等待的线程数。当线程数达到了这个数目时，所有进入等待状态的线程被唤醒并继续。
+   - CyclicBarrier就象它名字的意思一样，可看成是个障碍， 所有的线程必须到齐后才
+     能一起通过这个障碍。
+   - CyclicBarrier初始时还可带一个Runnable的参数， 此Runnable任务在CyclicBarrier
+     的数目达到后，所有其它线程被唤醒前被执行
+** Java并发之CountDownLatch、CyclicBarrier和Semaphore
+   这次说一下 JUC 中的同步器三个主要的成员：CountDownLatch、CyclicBarrier 和
+   Semaphore（不知道有没有初学者觉得这三个的名字不太好记）。这三个是 JUC 中较为
+   常用的同步器，通过它们可以方便地实现很多线程之间协作的功能。
+
+   CountDownLatch 是能使一组线程等另一组线程都跑完了再继续跑；CyclicBarrier 能够
+   使一组线程在一个时间点上达到同步，可以是一起开始执行全部任务或者一部分任务。
+
+   CountDownLatch 的作用和 Thread.join() 方法类似，可用于一组线程和另外一组线程
+   的协作。例如，主线程在做一项工作之前需要一系列的准备工作，只有这些准备工作都
+   完成，主线程才能继续它的工作。这些准备工作彼此独立，所以可以并发执行以提高速
+   度。在这个场景下就可以使用 CountDownLatch 协调线程之间的调度了。在直接创建线
+   程的年代（Java 5.0 之前），我们可以使用 Thread.join()。在 JUC 出现后，因为线
+   程池中的线程不能直接被引用，所以就必须使用 CountDownLatch 了。
+
+   CyclicBarrier 翻译过来叫循环栅栏、循环障碍什么的（还是有点别扭的。所以还是别
+   翻译了，只可意会不可言传啊）。它主要的方法就是一个：await()。await() 方法没被
+   调用一次，计数便会减少1，并阻塞住当前线程。当计数减至0时，阻塞解除，所有在此
+   CyclicBarrier 上面阻塞的线程开始运行。在这之后，如果再次调用 await() 方法，计
+   数就又会变成 N-1，新一轮重新开始，这便是 Cyclic 的含义所在。
+*** CyclicBarrier 和 CountDownLatch 在用法上的不同
+    CountDownLatch 适用于一组线程和另一个主线程之间的工作协作。一个主线程等待一
+    组工作线程的任务完毕才继续它的执行是使用 CountDownLatch 的主要场景；
+    CyclicBarrier 用于一组或几组线程，比如一组线程需要在一个时间点上达成一致，例
+    如同时开始一个工作。另外，CyclicBarrier 的循环特性和构造函数所接受的
+    Runnable 参数也是 CountDownLatch 所不具备的。
+** Callable, Runnable 和 Future接口
+   Callable是类似于Runnable的接口，实现Callable接口的类和实现Runnable的类都是可
+   被其它线程执行的任务。
+
+   Callable和Runnable有几点不同：
+   1. Callable规定的方法是call()，而Runnable规定的方法是run().
+   2. Callable的任务执行后可返回值，而Runnable的任务是不能返回值的。
+   3. call()方法可抛出异常，而run()方法是不能抛出异常的。
+   4. 运行Callable任务可拿到一个Future对象，
+
+   Future 表示异步计算的结果。它提供了检查计算是否完成的方法，以等待计算的完成，
+   并检索计算的结果。
+
+   通过Future对象可了解任务执行情况，可取消任务的执行，还可获取任务执行的结果。
+** FutureTask
+   实现了Runnable和Future，所以兼顾两者优点。既可以使用ExecutorService，也可以使
+   用Thread。
+** fork-join框架
+   fork操作的作用是把一个大的问题划分成若干个较小的问题。在这个划分过程一般是递
+   归进行的。直到可以直接进行计算。需要恰当地选取子问题的大小。太大的子问题不利
+   于通过并行方式来提高性能，而太小的子问题则会带来较大的额外开销。每个子问题计
+   算完成后，可以得到关于整个问题的部分解。join操作的作用是把这些分解手机组织起
+   来，得到完整解。
+
+   在fork/join框架中，若某个子问题由于等待另一个子问题的完成而无法继续执行。那么
+   处理该子问题的线程会主动寻找其他尚未运行完成的子问题来执行。这种方式减少了线
+   程的等待时间，提高了性能。子问题中应该避免使用synchronized关键词或其他方式方
+   式的同步。也不应该是一阻塞IO或过多的访问共享变量。在理想情况下，每个子问题的
+   实现中都应该只进行CPU相关的计算，并且只适用每个问题的内部对象。唯一的同步应该
+   只发生在子问题和创建它的父问题之间。
+
+   一个fork/join框架之下的任务由ForkJoinTask类表示。ForkJoinTask实现了Future接口，
+   可以按照Future接口的方式来使用。在ForkJoinTask类中之重要的两个方法fork和join。
+   fork方法用以一部方式启动任务的执行，join方法则等待任务完成并返回指向结果。在
+   创建自己的任务是，最好不要直接继承自ForkJoinTask类，而要继承自ForkJoinTask类
+   的子类RecurisiveTask或RecurisiveAction类。两种的区别在于RecurisiveTask类表示
+   的任务可以返回结果，而RecurisiveAction类不行。
+
+   ForkJoinTask在执行的时候可能会抛出异常，但是没办法在主线程里直接捕获异常，所
+   以ForkJoinTask提供了isCompletedAbnormally()方法来检查任务是否已经抛出异常或已
+   经被取消了，并且可以通过ForkJoinTask的getException方法获取异常。
 
 * 网络编程知识
 ** HTTPS的实现原理
@@ -865,6 +1028,12 @@
    最原始的jdbc->Spring的JdbcTemplate->hibernate->JPA->SpringDataJPA的演进之路
 ** 用spring和ibatis搭建java server
 ** RPC框架dubbo源码
+** NIO框架
+*** netty
+    REFS:
+    - http://blog.csdn.net/king866/article/details/54427447
+**** Netty高性能之Reactor线程模型
+
 * 应用服务器
 ** jboss，https://www.jboss.org/overview/
 ** tomcat，http://tomcat.apache.org/
@@ -994,10 +1163,75 @@
     使用场景：集群中机器数多、网络环境复杂
     优点：可靠性好
     缺点：实现复杂、稳定性依赖于缓存的稳定性、Session信息放入缓存时要有合理的策略写入
+
 * 数据库
 ** 关系型数据库
 ** NoSQL
 ** [[http://m.blog.csdn.net/wwh578867817/article/details/50493940][为什么 MongoDB （索引）使用B-树而 Mysql 使用 B+树？]]
+** JDBC事务
+*** 事务的四大特性（ACID）
+    事务的四大特性是：
+    - 原子性（Atomicity）：事务中所有操作是不可再分割的原子单位。事务中所有操作
+      要么全部执行成功，要么全部执行失败。
+    - 一致性（Consistency）：事务执行后，数据库状态与其它业务规则保持一致。如转
+      账业务，无论事务执行成功与否，参与转账的两个账号余额之和应该是不变的。
+    - 隔离性（Isolation）：隔离性是指在并发操作中，不同事务之间应该隔离开来，使
+      每个并发中的事务不会相互干扰。
+    - 持久性（Durability）：一旦事务提交成功，事务中所有的数据操作都必须被持久化
+      到数据库中，即使提交事务后，数据库马上崩溃，在数据库重启时，也必须能保证通
+      过某种机制恢复数据。
+*** MySQL中的事务
+    在默认情况下，mysql每执行一条SQL语句，都是一个单独的事务。如果需要在一个事务
+    中包含多条SQL语句，那么需要开启事务和结束事务。
+    - 开启事务：starttransaction；
+    - 结束事务：commit或rollback。
+    在执行SQL语句之前，先执行strat transaction，这就开启了一个事务（事务的起点），
+    然后可以去执行多条SQL语句，最后要结束事务，commit表示提交，即事务中的多条SQL
+    语句所做出的影响会持久化到数据库中。或者rollback，表示回滚，即回滚到事务的起
+    点，之前做的所有操作都被撤消了！
+*** JDBC事务
+    在jdbc中处理事务，都是通过Connection完成的！
+
+    同一事务中所有的操作，都在使用同一个Connection对象！
+
+    Connection的三个方法与事务相关：
+    - setAutoCommit(boolean)：设置是否为自动提交事务，如果true（默认值就是true）表示自动提交，也就是每条执行的SQL语句都是一个单独的事务，如果设置false，那么就相当于开启了事务了；con.setAutoCommit(false)表示开启事务！
+    - commit()：提交结束事务；con.commit();表示提交事务
+    - rollback()：回滚结束事务。con.rollback();表示回滚事务
+*** 事务隔离级别
+    事务的并发读问题
+    - 脏读：读取到另一个事务未提交数据；
+    - 不可重复读：两次读取不一致；
+    - 幻读：读到另一事务已提交数据。
+
+    并发事务问题
+    因为并发事务导致的问题大致有5类，其中两类是更新问题，三类是读问题。
+    - 脏读（dirty read）：读到另一个事务的未提交更新数据，即读取到了脏数据；
+    - 不可重复读（unrepeatable read）：对同一记录的两次读取不一致，因为另一事务对该记录做了修改；
+    - 幻读（虚读）（phantom read）：对同一张表的两次查询不一致，因为另一事务插入了一条记录；
+
+    四大隔离级别
+
+    4个等级的事务隔离级别，在相同数据环境下，使用相同的输入，执行相同的工作，根
+    据不同的隔离级别，可以导致不同的结果。不同事务隔离级别能够解决的数据并发问题
+    的能力是不同的。
+
+    - SERIALIZABLE（串行化）
+      - 不会出现任何并发问题，因为它是对同一数据的访问是串行的，非并发访问的；
+      - 性能最差；
+
+    - REPEATABLE READ（可重复读）（MySQL）
+      - 防止脏读和不可重复读，不能处理幻读问题；
+      - 性能比SERIALIZABLE好
+
+    - READ COMMITTED（读已提交数据）（Oracle）
+      - 防止脏读，没有处理不可重复读，也没有处理幻读；
+      - 性能比REPEATABLE READ好
+
+    - READ UNCOMMITTED（读未提交数据）
+      - 可能出现任何事务并发问题
+      - 性能最好
+
 
 * 大数据知识
 * 网络安全知识
