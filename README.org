@@ -1,5 +1,6 @@
 * [[file:openstack.org][OpenStack]]
 * [[file:distributed-system.org][分布式系统]]
+* [[file:optimize.org][性能优化]]
 * [[file:java.org][Java]]
 * [[file:python.org][Python]]
 * JavaScript
