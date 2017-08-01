@@ -1,0 +1,558 @@
+* 容器
+  Docker是一个基于轻量级虚拟化技术的容器引擎开源项目，使用Go语言开发。
+
+** 容器核心技术
+   容器规范
+   容器runtime
+   容器管理工具
+   容器定义工具
+
+   容器OS：容器 OS 是专门运行容器的操作系统。与常规 OS 相比，容器 OS 通常体积更
+   小，启动更快。因为是为容器定制的 OS，通常它们运行容器的效率会更高。
+
+** 容器平台技术
+*** 容器编排引擎
+    基于容器的应用一般会采用微服务架构。在这种架构下，应用被划分为不同的组件，并
+    以服务的形式运行在各自的容器中，通过 API 对外提供服务。为了保证应用的高可用，
+    每个组件都可能会运行多个相同的容器。这些容器会组成集群，集群中的容器会根据业
+    务需要被动态地创建、迁移和销毁。
+
+    大家可以看到，这样一个基于微服务架构的应用系统实际上是一个动态的可伸缩的系统。
+    这对我们的部署环境提出了新的要求，我们需要有一种高效的方法来管理容器集群。而
+    这，就是容器编排引擎要干的工作。
+
+    所谓编排（orchestration），通常包括容器管理、调度、集群定义和服务发现等。通
+    过容器编排引擎，容器被有机的组合成微服务应用，实现业务需求。
+*** 容器管理平台
+    容器管理平台是架构在容器编排引擎之上的一个更为通用的平台。通常容器管理平台能
+    够支持多种编排引擎，抽象了编排引擎的底层实现细节，为用户提供更方便的功能，比
+    如 application catalog 和一键应用部署等。
+
+*** 基于容器的 PaaS
+    基于容器的 PaaS 为微服务应用开发人员和公司提供了开发、部署和管理应用的平台，
+    使用户不必关心底层基础设施而专注于应用的开发。
+** 容器支持技术
+   容器网络
+   服务发现
+   监控
+   数据管理
+   日志管理
+   安全
+
+* 架构
+  从用户角度看，是典型的C/S架构，服务端由多个模块组成，各司其职，支撑Docker的运
+  行。
+** Docker Client
+   与Docker Daemon建立通信(支持SSL连接)，并发送用户请求。支持下列三种协议：
+   - tcp://host:port
+   - unix://path_to_socket
+   - fd://socketfd
+
+** Docker Daemon
+   Docker Daemon是一个常驻后台的系统进程，其在后台启动了一个Server和Engine。
+*** Docker Server
+    接受请求后，通过路由分发调度，调用相应的Handler来执行请求。
+
+    handler对象存储的是关于众多特定job的处理。如handler对象 {"create":
+    daemon.ContainerCreate }，其说明当名为"create"的job运行时，执行的是
+    daemon.ContainerCreate。
+
+    在实际的实现中，Server表现为一个Job，可视为普通Job的一个特例。
+*** Docker Engine
+    Docker架构的运行引擎、核心模块。它扮演Docker Container存储仓库的角色，并通
+    过执行job的方式来操纵、管理容器。
+**** Job
+     Docker Engine内部最基本的工作执行单元。Docker的每一项工作，都抽象为一个Job。如：
+     - 在容器内运行一个进程，是一个job
+     - 创建一个新的容器，是一个job
+     - 从internet上下载一个文件，是一个job
+
+     Job设计地与Unix进程相仿，job有一个名称、参数、环境变量、标准IO、错误处理、
+     返回状态等。
+** Docker Registry
+   一个存储容器镜像的仓库。Docker Daemon会与Docker Register通信，实现搜索、下载、
+   上传镜像，对应的job分别为 search、pull、push。
+
+** Docker Graph
+   扮演已下载容器镜像的保管者及镜像之间关系的记录者。实现中关系保存在GraphDB中。
+   GraphDB是一个构建在SQLLiter之上的小型图数据库，实现了节点的命名及节点间关系。
+   的记录。
+
+   对于每一个已下载的镜像，存储的信息有：
+   - 镜像的元数据
+   - 镜像大小
+   - 镜像的rootfs
+
+** Docker Driver
+   通过Driver驱动，实现了对容器执行环境的定制。
+
+   由于Docker所有操作中除了针对容器的管理外，还有Docker运行信息、Graph的存储与
+   记录等。因此，为了将Docker容器的管理从Daemon内部业务中区分开来，设计了Driver
+   层驱动来接管这部分操作讲求。
+
+   驱动分三类：
+   - graphdriver
+
+     用于容器镜像的管理、存储、获取。在graphdriver初始化之前，会注册4种文件系统：
+     aufs, btrfs, vfs, devmapper。最终使用哪种文件系统，由Docker初始化，通过系
+     统环境变量"DOKCER_DRIVER"来提取所使用的类型。
+
+   - networkdriver
+
+     完成Docker容器网络环境的配置，包括：
+     - 创建网桥
+     - 创建虚拟网卡设备
+     - 分配IP
+     - 映射端口
+     - 设置防火墙策略
+
+   - execdriver
+
+     负责创建容器运行的命名空间，负责容器资源使用的统计及限制，负责容器内部进程
+     的真正运行。
+
+     实现中，原先使用LXC驱动调用LXC接口操纵容器的配置及生命周期。现在使用native
+     驱动。可通过ExecDriverFlag参数进行指定。
+
+** libcontainer
+   使用Go语言开发的一个库，其初衷是希望可以不依靠任何依赖，直接访问内核中与容器
+   相关的API。
+
+   Docker可直接调用libcontainer 操纵容器的namespace, cgroups, apparmor, network
+   device and firewall, etc.，而不需要依赖LXC或其他包。
+
+** Docker Container
+   Docker镜像的运行实例。
+
+* 镜像
+** base镜像
+   base镜像有2层含义：
+   1. 不依赖其他镜像，从scratch构建
+   2. 其他镜像可以之为基础进行扩展
+
+** 举例
+   docker pull centos
+
+   为何一个centos镜像才200Mb？
+
+   linux由内核空间和用户空间组成。
+
+   内核空间: Linux刚启动时会加载bootfs，之后会被卸载。
+   用户空间：用户空间的文件系统是rootfs，包含我们熟悉的/dev, /proc/, /bin等。
+
+   对base镜像来说，内核直接用Host的内核就行了，自己只需要提供rootfs就行。
+
+   需要说明的是：
+   1. 由于内核空间用的是Host的内核，因此base镜像只是用户空间与镜像的发行版一致。
+      可进入容器内查看 uname -r 进行验证。
+   2. 容器只能使用Host的内核，且不能修改。
+
+** 镜像的构建
+   新镜像是从base镜像一层一层叠加生成的，每安装一个软件，就在现有镜像的基础上增
+   加一层。
+
+   为什么采用这种分层结构呢？
+
+   最大的一个好处就是——共享资源。
+
+** 可写的容器层
+   当容器启动时，一个新的可写层被加载到镜像的顶部。这一层通常被叫作“容器层”。
+
+   所有对容器的改动 - 无论添加、删除、还是修改文件都只会发生在容器层中。
+
+** 构建镜像的方法
+
+*** docker commit
+    1. 运行容器
+    2. 修改容器
+    3. 将容器保存为新的镜像
+
+*** Dockerfile
+    1. 创建Dockerfile文件
+    2. docker build -t image-name .
+
+    Docker会缓存已有镜像的镜像层， 若不使用缓存，使用 docker build --no-cache。
+
+    Dockerfile中的每一个指令都会创建一个镜像层，上层依赖下层。只发某一层发生变
+    化，依赖于其的所有层都会失效。
+
+    也就是说，如果我们改变 Dockerfile 指令的执行顺序，或者修改或添加指令，都会
+    使缓存失效。
+
+*** docker history
+    显示镜像的构建历史，也就是 Dockerfile 的执行过程
+
+*** 构建过程
+    通过 Dockerfile 构建镜像的过程：
+    1. 从 base 镜像运行一个容器。
+    2. 执行一条指令，对容器做修改。
+    3. 执行类似 Docker commit 的操作，生成一个新的镜像层。
+    4. docker 再基于刚刚提交的镜像运行一个新容器。
+    5. 重复 2-4 步，直到 Dockerfile 中的所有指令执行完毕。
+
+*** Dockerfile指令
+    FROM
+    MAINTAINER
+    COPY/ADD
+    ENV
+    EXPOSE
+    VOLUME
+    WORKDIR
+    RUN
+    CMD
+    ENTRYPOINT
+
+* 常用命令
+
+** attach, exec
+   docker attach container-id
+
+   docker exec -it container-id  bash
+
+   attach 与 exec 主要区别如下:
+   - attach 直接进入容器 启动命令 的终端，不会启动新的进程。
+   - exec 则是在容器中打开新的终端，并且可以启动新的进程。
+
+   如果想直接在终端中查看启动命令的输出，用 attach；其他情况使用 exec。
+
+   当然，如果只是为了查看启动命令的输出，可以使用 docker logs 。
+
+* 容器生命周期
+
+** 内存限制
+   1. --memory: 内存
+   2. --memory-swap: 交换内存
+   3. --vm 1:启动1个内存工作线程
+   4. --vm-bytes 280M: 每个线程分配280M内存
+
+** cpu限制
+   --cpu-shares: 设置CPU权重
+
+   权重分配只会发生在资源紧张的情况下，假设只有一个活动容器，其他都空闲，则这个
+   活动容器能分配到全部可用的CPU。
+
+** 磁盘读写
+   --blkio-weight: 与CPU权重类似
+
+   --device-read-bps: 每秒读写的数据量
+   --device-write-bps:
+   --device-read-iops: 每秒IO的次数
+   --device-write-iops:
+* 容器底层技术
+** cgroup
+   cgroup实现的资源限额。涉及的文件：
+   - /sys/fs/cgroup
+   - /sys/fs/cgroup/memeory/docker
+   - /sys/fs/cgroup/blkio/docker
+
+** namespace
+   namespace实现资源隔离，Linux使用了6种：
+   - mount
+
+     让容器看上去拥有整个文件系统。容器有自己的 / 目录，可以执行 mount 和
+     umount 命令。当然我们知道这些操作只在当前容器中生效，不会影响到 host 和其
+     他容器。
+
+   - UTS
+
+     让容器有自己的hostname。可在docker run 时通过--hostname指定
+
+   - IPC
+
+     让容器拥有自己的共享内存和信号量（semaphore）来实现进程间通信，而不会与
+     host 和其他容器的 IPC 混在一起。
+
+   - PID
+
+     进程的 PID 不同于 host 中对应进程的 PID，容器中 PID=1 的进程当然也不是
+     host 的 init 进程。也就是说：容器拥有自己独立的一套 PID，这就是 PID
+     namespace 提供的功能。
+
+   - Network
+
+     让容器拥有自己独立的网卡、IP、路由等资源
+
+   - User
+
+     让容器能够管理自己的用户，host 不能看到容器中创建的用户
+* Docker网络
+  docker network ls
+** none network
+   容器创建时，可通过 --network=none 指定使用none network
+
+   我们不禁会问，这样一个封闭的网络有什么用呢？
+
+   其实还真有应用场景。封闭意味着隔离，一些对安全性要求高并且不需要联网的应用可
+   以使用 none 网络。
+
+   比如某个容器的唯一用途是生成随机密码，就可以放到 none 网络中避免密码被窃取。
+
+** host network
+   容器创建时，可通过 --network=host 指定使用 host network。
+
+   在容器中可以看到 host 的所有网卡，并且连 hostname 也是 host 的。host 网络的
+   使用场景又是什么呢？
+
+   直接使用 Docker host 的网络最大的好处就是性能，如果容器对网络传输效率有较高
+   要求，则可以选择 host 网络。当然不便之处就是牺牲一些灵活性，比如要考虑端口冲
+   突问题，Docker host 上已经使用的端口就不能再用了。
+
+   Docker host 的另一个用途是让容器可以直接配置 host 网路。比如某些跨 host 的网
+   络解决方案，其本身也是以容器方式运行的，这些方案需要对网络进行配置，比如管理
+   iptables，
+
+** bridge network
+   Docker安装时会创建一个名为docker0的Linux Bridge.创建容器时若不指定--network，
+   默认挂到docker0上。
+
+   veth pair是一种成对出现的特殊网络设备，可认为是由一根虚拟网线连接起来的一对
+   网卡。一头在容器中，一头在docker0中。
+
+   容器中可以看到eth0@if34分配了IP地址，为什么是这个地址呢？
+
+   docker network inspect bridge
+
+   可以看到网桥配置的子网是172.17.0.0/16，网关为172.17.0.1。
+
+   这个网关就是docker0。容器创建时，docker会自动从这个子网中分配一个IP。
+
+** user-defined network
+   除了 none, host, bridge 这三个自动创建的网络，用户也可以根据业务需要创建
+   user-defined 网络。
+
+   Docker 提供三种 user-defined 网络驱动：bridge, overlay 和 macvlan。overlay
+   和 macvlan 用于创建跨主机的网络
+
+*** bridge
+    docker network create --driver --subnet ... --gateway ... my_net
+
+    创建容器时可通过 --ip 指定静态IP地址。若指定的网络未指定子网，会报错。
+
+
+
+
+*** overlay
+
+*** macvlan
+
+** 网络的互通性
+   同一网络中的容器、网关间都是可以通信的。那如何让两不同网络的容器互相通信呢？
+
+   不同的网络如果加上路由应该就可以通信了吧？
+
+   确实，如果 host 上对每个网络的都有一条路由，同时操作系统上打开了 ip
+   forwarding，host 就成了一个路由器，挂接在不同网桥上的网络就能够相互通信。下
+   面我们来看看 docker host 满不满足这些条件呢？
+
+   查看Host路由表: ip r
+   查看 ip forwarding: sysctl net.ipv4.ip_forward
+   查看 iptables: iptables-save
+
+   此时，可以看到iptables去掉了不同网络间的双向流量。
+
+   此路不通。那就为一个容器增加一块网卡，并连到另一个网络，这样就实现了容器与
+   另一网络的通信了，也保证了不同网络的隔离：
+
+   docker network connect my_net2 container-id
+
+** IP互通
+   两个容器要能通信，必须要有属于同一个网络的网卡。这样容器就可以通过IP通信了。
+
+*** DNS Server
+    通过IP访问容器虽然满足了通信的需求，但仍不够灵活。因为在部署应用前可能无法
+    确定IP，而后再要指定IP会比较麻烦。
+
+    Docker 1.10版本开始，docker daemon实现了一个DNS Server，容器可直接通过容器
+    名进行通信。
+
+    使用DNS有个限制，只能在用户添加的网络中使用。
+
+*** joined容器
+    joined容器是另一种容器间通信的方法，它可使两个或多个容器共享一个网络栈，共
+    享网卡和配置信息，且容器间可通过127.0.01直接通信。
+
+    例：
+    docker run -d -it --name=web1 httpd
+    docker run -it --network=Container:web1 busybox
+
+    进入容器中可看到 web1 与 busybox 的网卡mac地址与IP完全一样。
+
+    joined 容器非常适合以下场景：
+    - 不同容器中的程序希望通过 loopback 高效快速地通信，比如 web server 与 app
+      server。
+    - 希望监控其他容器的网络流量，比如运行在独立容器中的网络监控程序。
+
+** 容器与外部世界的互通
+*** 容器访问外网
+   默认网络可以访问外网。原理是NAT。
+
+   iptables -t nat -S
+   可以看到这样一条规则：
+   -A POSTROUTING -s 172.17.0.0/16 ! -o docker0 -j MASQUERADE
+
+   其含义是：如果网桥 docker0 收到来自 172.17.0.0/16 网段的外出包，把它交给
+   MASQUERADE 处理。而 MASQUERADE 的处理方式是将包的源地址替换成 host 的地址发
+   送出去，即做了一次网络地址转换（NAT）。
+
+   通过 tcpdump 查看地址是如何转换的。先查看 docker host 的路由表：ip r
+
+   tcpdump -i docker0 -n icmp
+
+   docker0 收到 busybox 的 ping 包，源地址为容器 IP 172.17.0.2，这没问题，交给
+   MASQUERADE 处理。这时，在 enp0s3 上我们看到了变化：
+
+   tcpdump -i enp0s3 -n icmp
+
+   ping 包的源地址变成了 enp0s3 的 IP 10.0.2.15
+
+   这就是 iptable NAT 规则处理的结果，从而保证数据包能够到达外网。
+
+*** 外网访问容器
+    通过端口映射。
+
+    Docker 可将容器对外提供服务的端口映射到 host 的某个端口，外网通过该端口访问
+    容器。容器启动时通过-p参数映射端口：
+    docker run -d -p 80 httpd
+
+    容器启动后，可通过 docker ps 或者 docker port 查看到 host 映射的端口。在上
+    面的例子中，httpd 容器的 80 端口被映射到 host 32773 上，这样就可以通过
+    <host ip>:<32773> 访问容器的 web 服务了。
+
+    除了映射动态端口，也可在 -p 中指定映射到 host 某个特定端口，例如可将 80 端
+    口映射到 host 的 8080 端口。
+
+    每一个映射的端口，host 都会启动一个 docker-proxy 进程来处理访问容器的流量：
+    1. docker-proxy 监听 host 的 32773 端口。
+    2. 当 curl 访问 10.0.2.15:32773 时，docker-proxy 转发给容器 172.17.0.2:80。
+    3. httpd 容器响应请求并返回结果。
+
+** 跨主机容器间通信
+   跨主机网络方案包括：
+   - docker 原生的 overlay 和 macvlan。
+   - 第三方方案：常用的包括 flannel、weave 和 calico。
+
+   如此众多的方案是如何与 docker 集成在一起的？
+
+   答案是：libnetwork 以及 CNM。
+
+*** libnetwork & CNM
+    libnetwork 是 docker 容器网络库，最核心的内容是其定义的 Container Network
+    Model (CNM)，这个模型对容器网络进行了抽象，由以下三类组件组成：
+
+    - Sandbox
+
+      Sandbox 是容器的网络栈，包含容器的 interface、路由表和 DNS 设置。 Linux
+      Network Namespace 是 Sandbox 的标准实现。Sandbox 可以包含来自不同 Network
+      的 Endpoint。
+
+    - Endpoint
+
+      Endpoint 的作用是将 Sandbox 接入 Network。Endpoint 的典型实现是 veth pair，
+      后面我们会举例。一个 Endpoint 只能属于一个网络，也只能属于一个 Sandbox。
+
+    - Network
+
+      Network 包含一组 Endpoint，同一 Network 的 Endpoint 可以直接通信。Network
+      的实现可以是 linux Bridge、VLAN 等。
+
+    libnetwork CNM 定义了 docker 容器的网络模型，按照该模型开发出的 driver 就能
+    与 docker daemon 协同工作，实现容器网络。
+* Docker存储
+  docker 为容器提供了两种存放数据的资源：
+  - 由 storage driver 管理的镜像层和容器层。
+  - Data Volume。
+
+** 由 storage driver 管理的镜像层和容器层
+   对于某些容器，直接将数据放在由 storage driver 维护的层中是很好的选择，比如那
+   些无状态的应用。无状态意味着容器没有需要持久化的数据，随时可以从镜像直接创建。
+
+   但对于另一类应用这种方式就不合适了，它们有持久化数据的需求，容器启动时需要加
+   载已有的数据，容器销毁时希望保留产生的新数据，也就是说，这类容器是有状态的。
+
+** data volume
+   Data Volume 本质上是 Docker Host 文件系统中的目录或文件，能够直接被 mount 到
+   容器的文件系统中。Data Volume 有以下特点：
+   - Data Volume 是目录或文件，而非没有格式化的磁盘（块设备）。
+   - 容器可以读写 volume 中的数据。
+   - volume 数据可以被永久的保存，即使使用它的容器已经销毁。
+
+   因为 volume 实际上是 docker host 文件系统的一部分，所以 volume 的容量取决于
+   文件系统当前未使用的空间，目前还没有方法设置 volume 的容量。
+
+   docker 提供了两种类型的 volume：bind mount 和 docker managed volume。
+
+*** bind mount
+    bind mount 是将 host 上已存在的目录或文件 mount 到容器。
+
+    docker run -d -p 80 -v ~/htdocs:/user/local/apache2/htdocs httpd
+
+    即使容器没有了，bind mount 也还在。这也合理，bind mount 是 host 文件系统中
+    的数据，只是借给容器用用，哪能随便就删了啊。
+
+    另外，bind mount 时还可以指定数据的读写权限，默认是可读可写，可指定为只读。
+
+    除了 bind mount 目录，还可以单独指定一个文件。
+
+    mount point 有很多应用场景，比如我们可以将源代码目录 mount 到容器中，在
+    host 中修改代码就能看到应用的实时效果。再比如将 MySQL 容器的数据放在 bind
+    mount 里，这样 host 可以方便地备份和迁移数据。
+
+    bind mount 的使用直观高效，易于理解，但它也有不足的地方：bind mount 需要指
+    定 host 文件系统的特定路径，这就限制了容器的可移植性，当需要将容器迁移到其
+    他 host，而该 host 没有要 mount 的数据或者数据不在相同的路径时，操作会失败。
+
+    移植性更好的方式是 docker managed volume，下一节我们讨论。
+
+*** docker managed volume
+    Docker managed volume 与 bind mount 在使用上的最大区别是不需要指定 mount 源，
+    指明 mount point 就行了。还是以 httpd 容器为例：
+
+    docker run -d -p 80 -v /user/local/apache2/htdocs httpd
+
+    我们通过 -v 告诉 docker 需要一个 data volume，并将其 mount 到
+    /usr/local/apache2/htdocs。那么这个 data volume 具体在哪儿呢？
+
+    这个答案可以在容器的配置信息中找到，执行 docker inspect 命令。
+
+    volume 的内容跟容器原有 /usr/local/apache2/htdocs 完全一样，这是怎么回事呢？
+
+    这是因为：如果 mount point 指向的是已有目录，原有数据会被复制到 volume 中。
+
+    但要明确一点：此时的 /usr/local/apache2/htdocs 已经不再是由 storage driver
+    管理的层数据了，它已经是一个 data volume。我们可以像 bind mount 一样对数据
+    进行操作，例如更新数据。
+
+     docker managed volume 的创建过程：
+     1. 容器启动时，简单的告诉 docker "我需要一个 volume 存放数据，帮我 mount 到目录 /abc"。
+     2. docker 在 /var/lib/docker/volumes 中生成一个随机目录作为 mount 源。
+     3. 如果 /abc 已经存在，则将数据复制到 mount 源，
+     4. 将 volume mount 到 /abc
+
+** 容器间共享数据
+   1. 第一种方法是将共享数据放在 bind mount 中，然后将其 mount 到多个容器。
+
+   2. 另一种在容器之间共享数据的方式是使用 volume Container。
+
+      volume Container 是专门为其他容器提供 volume 的容器。它提供的卷可以是
+      bind mount，也可以是 Docker managed volume。
+
+      创建一个 volume container：
+
+      docker create --name vc_data -v ~/htdocs:/user/local/apache2/htdocs -v
+      /other/useful/tools busybox
+
+      其他容器可以通过 --volumes-from 使用 vc_data 这个 volume container
+
+   3. 另一种在容器之间共享数据的方式是 data-packed volume container
+
+      volume Container 的数据归根到底还是在 host 里，有没有办法将数据完全放到
+      volume container 中，同时又能与其他容器共享呢？
+
+      当然可以，通常我们称这种容器为 data-packed volume container。其原理是将数
+      据打包到镜像中，然后通过 Docker managed volume 共享。
+
+      容器能够正确读取 volume 中的数据。data-packed volume container 是自包含的，
+      不依赖 host 提供数据，具有很强的移植性，非常适合 只使用 静态数据的场景，
+      比如应用的配置信息、web server 的静态文件等。
+
+** volume生命周期

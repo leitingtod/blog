@@ -1034,6 +1034,8 @@
     - http://blog.csdn.net/king866/article/details/54427447
 **** Netty高性能之Reactor线程模型
 
+* 高并发
+
 * 应用服务器
 ** jboss，https://www.jboss.org/overview/
 ** tomcat，http://tomcat.apache.org/
