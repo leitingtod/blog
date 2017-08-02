@@ -1035,6 +1035,414 @@
 **** Netty高性能之Reactor线程模型
 
 * 高并发
+* 事务
+  REFS:
+  - http://blog.csdn.net/huilangeliuxin/article/details/43446177
+  - http://www.cnblogs.com/chengpeng15/p/5802930.html
+
+** 什么是事务？
+   REFS:
+   -  http://www.cnblogs.com/yefengmeander/p/3520681.html
+
+   事务的概念最开始出现在关系型数据库中。事务是确保"同时成功则成功，任何一个失败
+   则失败"的一种机制。一个事务往往包括三种动作行为：开始事务（Begin Transaction），
+   提交事务（Commit）和回滚（Rollback）。从开始事务到提交事务过程中所发生的一切
+   数据库修改要么同时成功（被Commit，固化在数据库中），要么一个失败，大家同时回
+   复原有状态（Rollback，数据库回复到事务开始时的状态）。
+
+   简单的理解：它是一个操作序列，这些操作要么都执行，要么都不执行，它是一个不可
+   分割的工作单位。
+
+   随着IT技术的发展，事务的范畴也变大，又称之为交易，指一个程序或程序段，在一个
+   或多个资源如 数据库 或文件上为完成某些功能的执行过程的集合。
+
+
+*** 事务的ACID特点
+    分别是指原子性（atomicity）、一致性（consistency）、隔离性（isolation）和持久性（durability）。
+    - 原子性（atomicity）。一个事务是一个不可分割的工作单位，事务中包括的诸操作
+      要么都做，要么都不做。
+    - 一致性（consistency）。事务必须是使数据库从一个一致性状态变到另一个一致性
+      状态。一致性与原子性是密切相关的。
+    - 隔离性（isolation）。一个事务的执行不能被其他事务干扰。即一个事务内部的操
+      作及使用的数据对并发的其他事务是隔离的，并发执行的各个事务之间不能互相干扰。
+    - 持久性（durability）。持续性也称永久性（permanence），指一个事务一旦提交，
+      它对数据库中数据的改变就应该是永久性的。接下来的其他操作或故障不应该对其有
+      任何影响。
+
+*** 数据库事务有以下3种运行模式
+    自动提交事务：每条单独的语句都是一个事务。
+    显式事务：每个事务均以BEGIN TRANSACTION语句显式开始，以COMMIT或ROLLBACK语句显式结束。
+    隐性事务：在上个事务完成时新事务隐式启动，但每个事务仍以COMMIT或ROLLBACK语句显式完成。
+
+*** 事务的并发控制
+    如果不对事务进行并发控制，并发事务的无序执行将会破坏数据的完整性。事务并发执
+    行可能导致的异常可以分为以下几种情况。
+
+    1. Lost update（丢失更新）
+
+       A和B事务并发执行，A事务执行更新后，提交；B事务在A事务更新后，B事务结束前
+       也做了对该行数据的更新操作，然后回滚，则两次更新操作都丢失了。
+
+       更新都做白搞了，被一个不争气的事务又还原了！
+
+
+
+    2. Dirty Reads（脏读）
+
+       A和B事务并发执行，B事务执行更新后，A事务查询B事务没有提交的数据，B事务回
+       滚，则A事务得到的数据不是数据库中的真实数据。也就是脏数据，即和数据库中不
+       一致的数据。
+
+       读了数据库中不存在的数据，感觉被人忽悠了。
+
+
+    3. Non-repeatable Reads（非重复读）
+
+       A和B事务并发执行，A事务查询数据，然后B事务更新该数据，A再次查询该数据时，
+       发现该数据变化了。
+
+       在同一事务中两次读取中被其他事务强行修改，有种横刀夺爱，物是人非的意思。
+
+
+
+    4. Second lost updates（第二类丢失更新，可以称为覆盖更新）：
+
+       是非重复读的一种特殊情况，即A事务更新数据，然后B事务更新该数据，A事务查询
+       发现自己更新的数据变了。
+
+       一个事务修改了数据，事后发现不是按照自己意思修改的，原来是被另外一个事务
+       做了手脚，偷天换日！
+
+    5. Phantom Reads（幻像读）
+
+       A和B事务并发执行，A事务查询数据，B事务插入或者删除数据，A事务再次查询发现
+       结果集中有以前没有的数据或者以前有的数据消失了。
+
+*** 数据库的sql-92隔离级别
+    一个事务与其他事务隔离的程度称为隔离级别。数据库规定了多种事务隔离级别，不同
+    隔离级别对应不同的干扰程度，隔离级别越高，数据一致性就越好，但并发性越弱。为
+    了兼顾并发效率和异常控制，在标准SQL规范中，定义了4个事务隔离级别。
+
+    1. Read Uncommitted（未提交读）：
+
+       即使一个更新语句没有提交，别的事务也可以读到这个改变。如果一个事务已经开
+       始写数据，则另外一个事务不允许同时进行写操作，但允许其他事务读此行数据。
+
+    2. Read Committed（已提交读）：
+
+       更新语句提交以后别的事务才能读到这个改变。读取数据的事务允许其他事务继续
+       访问该行数据，但是未提交的写事务将会禁止其他事务访问该行。
+
+    3. Repeatable Read（可重复读）：
+
+       在同一个事务里面先后执行同一个查询语句的时候，确保得到的结果是一样的。读
+       取数据的事务将会禁止写事务（但允许读事务），写事务则禁止任何其他事务。
+
+    4. Serializable（串行化）：
+
+       事务执行的时候不允许别的事务并发执行。事务串行化执行，事务只能一个接着一
+       个地执行，而不能并发执行。
+
+*** 隔离级别对并发的控制
+
+    各隔离级别对各种异常的控制能力如下表所示，其中Y表示会出现该种异常，N表示不会出现该种异常。
+    | 级别\并发控制 | 丢失更新 | 脏读 | 非重复读 | 覆盖更新 | 幻像读 |
+    | 未提交读      | Y        | Y    | Y        | Y        | Y      |
+    | 已提交读      | N        | N    | Y        | Y        | Y      |
+    | 可重复读      | N        | N    | N        | N        | Y      |
+    | 串行化        | N        | N    | N        | N        | N      |
+
+*** 事务涉及的对象
+
+    资源：应用程序存储和获取数据的地方，可以是数据库，文件，也可以是内存。如果是
+    应用程序的事务块代码中涉及到的数据库，文件，内存，那这些资源就称为事务型资源。
+
+    资源管理器：在事务模型中，应用不是直接访问资源，而是通过中间介访问资源，这个
+    中间介就叫资源管理器。资源分为可持久化资源（对应了持久化资源管理），易失资源
+    （对应了易失资源管理器）。
+
+    事务管理器：实现事务的开始，提交，回滚。
+
+*** 事务的分类
+
+    本地事务: 本地（Local Transaction）事务指只有一个数据源参与的事务，比如只有
+    数据库或者只有JMS；
+
+    分布式事务: 分布式事务(Distributed Transaction)指有多个数据源同时参与的事务，
+    比如一项操作需要同时访问数据库和通过JMS发送消息，或者一项操作需要同时访问两
+    个不同数据库。对于分布式事务，Java提供了JTA规范，它的原理与本地事务存在不同。
+
+
+*** Java事务的类型有三种
+    JDBC事务、JTA(Java Transaction API)事务、容器事务。
+**** JDBC事务
+     JDBC的一切行为包括事务是基于一个Connection的，在JDBC中是通过Connection对象
+     进行事务管理。在JDBC中，常用的和事务相关的方法是： setAutoCommit、commit、
+     rollback等。
+
+**** JDBC事务的优缺点
+     JDBC为使用Java进行数据库的事务操作提供了最基本的支持。通过JDBC事务，我们可
+     以将多个SQL语句放到同一个事务中，保证其ACID特性。JDBC事务的主要优点就是API
+     比较简单，可以实现最基本的事务操作，性能也相对较好。
+
+     但是，JDBC事务有一个局限：一个 JDBC 事务不能跨越多个数据库！！！所以，如果
+     涉及到多数据库的操作或者分布式场景，JDBC事务就无能为力了。
+
+**** JTA事务
+
+***** 为什么需要JTA
+      通常，JDBC事务就可以解决数据的一致性等问题，鉴于他用法相对简单，所以很多人
+      关于Java中的事务只知道有JDBC事务，或者有人知道框架中的事务（比如Hibernate、
+      Spring）等。但是，由于JDBC无法实现分布式事务，而如今的分布式场景越来越多，
+      所以，JTA事务就应运而生。
+
+      如果，你在工作中没有遇到JDBC事务无法解决的场景，那么只能说你做的项目还都太
+      小。拿电商网站来说，我们一般把一个电商网站横向拆分成商品模块、订单模块、购
+      物车模块、消息模块、支付模块等。然后我们把不同的模块部署到不同的机器上，各
+      个模块之间通过远程服务调用(RPC)等方式进行通信。以一个分布式的系统对外提供
+      服务。
+
+      一个支付流程就要和多个模块进行交互，每个模块都部署在不同的机器中，并且每个
+      模块操作的数据库都不一致，这时候就无法使用JDBC来管理事务。
+
+      即使方法中增加了@Transactional注解，但是由于采用调用了分布式服务，该事务并不能达到ACID的效果。
+
+      JTA事务比JDBC事务更强大。一个JTA事务可以有多个参与者，而一个JDBC事务则被限
+      定在一个单一的数据库连接。下列任一个Java平台的组件都可以参与到一个JTA事务
+      中：JDBC连接、JDO PersistenceManager 对象、JMS 队列、JMS 主题、企业
+      JavaBeans（EJB）、一个用J2EE Connector Architecture 规范编译的资源分配器。
+
+**** JTA的优缺点
+     JTA的优点很明显，就是提供了分布式事务的解决方案，严格的ACID。但是，标准的
+     JTA方式的事务管理在日常开发中并不常用，因为他有很多缺点:
+
+     - 实现复杂
+       - 通常情况下，JTA UserTransaction需要从JNDI获取。这意味着，如果我们使用
+         JTA，就需要同时使用JTA和JNDI。
+     - JTA本身就是个笨重的API
+     - 通常JTA只能在应用服务器环境下使用，因此使用JTA会限制代码的复用性。
+
+     虽然JTA事务是Java提供的可用于分布式事务的一套API，但是不同的J2EE平台的实现
+     都不一样，并且都不是很方便使用，所以，一般在项目中不太使用这种较为负责的API。
+     现在业内比较常用的分布式事务解决方案主要有异步消息确保型、TCC、最大努力通知
+     等。
+
+**** 容器事
+     容器事务主要是J2EE应用服务器提供的，容器事务大多是基于JTA完成，这是一个基于
+     JNDI的，相当复杂的API实现。
+** Java事务处理的基本问题
+   Java中的事务处理有多简单？在使用EJB时，事务在我们几乎察觉不到的情况下发挥着作
+   用；而在使用spring时，也只需要配置一个TransactionManager，然后在需要事务的方
+   法上加上Transactional注解就行了。Java的事务处理之所以这么简单是因为框架在背后
+   为我们做了太多的工作。这样，我们虽然可以快速地完成开发工作，但是一旦程序出现
+   问题，在一阵google和stackoverflow之后，你估计还是一筹莫展。作为一个有技术追求
+   的程序员，你应该了解Java事务的底层工作原理。
+
+   Java通过JDBC与数据库进行交互，这是一个如今多数程序员都不会直接使用的技术，我
+   们更倾向于使用hibernate和Mybatis，但是，他们在底层都需要JDBC与数据库通信，事
+   务处理亦是如此，那么，我们首先来看看JDBC提供的事务处理API。
+** JDBC提供的事务处理API
+   JDBC提供的事务处理API非常少，请不要被Spring中事务处理的那一堆源代码所打击得信
+   心尽失，这些框架提供的事务处理功能归根结底主要通过以Connection类的方法完成：
+   - Connection.setAutoCommit(boolean);
+   - Connection.commit();
+   - Connection.rollback();
+
+   在Spring的事务处理源代码中，有很多都是处理多线程的，另外一些使用了一些设计模
+   式。不要惊慌，在本系列中（除了系列八），你将看不到任何Spring的影子，我们会通
+   过简单的代码来学习Java事务，学完之后，你可以阅读一下Spring的事务处理源代码，
+   然后将本系列中的事务处理原理与Spring对比，你会发现，Spring要面临与处理的问题
+   也是本系列文章中遇到的问题。
+** 本地事务和分布式事务
+   本地（Local Transaction）事务指只有一个数据源参与的事务，比如只有数据库或者只
+   有JMS；分布式事务(Distributed Transaction)指有多个数据源同时参与的事务，比如
+   一项操作需要同时访问数据库和通过JMS发送消息，或者一项操作需要同时访问两个不同
+   数据库。对于分布式事务，Java提供了JTA规范，它的原理与本地事务存在不同。 鉴于
+   多数情况下Java事务为本地事务，本系列主要讲解本地事务，而在系列八中有分布式事
+   务的入门例子。
+** 线程安全
+   线程安全是Java事务处理的一大难点，比如一个DAO类维护了一个Connection实例变量，
+   两个线程同时使用该DAO类与数据库交互，其中一个在使用完Connection后将其关闭，而
+   此时另一个线程正在使用该Connection访问数据库，这时另一个线程对数据库的访问将
+   失败。在本系列的后续文章中，我们将学到如何处理这样的问题并开发线程安全的程序。
+** Service层和DAO层
+   通常来说，数据持久化层又分为Service层和DAO层，Service层用于完成与业务逻辑有关
+   的工作，并且Service层包含了工作单元（Unit of work），也即Service层中的方法为
+   事务作用的边界；DAO层用于完成对数据库的实际操作（增删改查）。
+
+   有时在使用Hibernate或是JPA时我们也会直接在Service层访问数据库而省略掉DAO层。
+   在本系列中，我们会用一个BankService例子贯穿始终。该BankService用于将用户银行
+   账户（Bank Account）中的存款转帐到该用户的保险账户（Insurance Account）中，两
+   个账户对应有不同的数据库表。
+** 典型的事务处理失败的案例
+   失败的主要原因在于，service层和各个DAO所使用的Connection是不一样的，而JDBC中
+   事务处理的作用对象正是Connection对象，所以不同DAO中的操作不在同一个事务里面，
+   从而导致事务失败。从中我们得出了教训：要避免这种失败，我们可以使所有操作共享
+   一个Connection对象，这样应该就没有问题了。
+
+   为了使两个DAO在同一个事务中，我们应该在整个事务处理过程中使用一个Connection对
+   象，在下一篇文章中，我们将讲到通过共享Connection对象的方式达到事务处理的目的。
+** 丑陋的事务处理方案
+   基本思路是：在service层创建Connection对象，再将该Connection传给各个DAO类，这
+   样就完成了Connection共享的目的。
+
+   通过上面共享Connection对象的方法虽然可以完成事务处理的目的，但是这样做法是丑
+   陋的，原因在于：为了完成事务处理的目的，我们需要将一个底层的Connection类在
+   service层和DAO层之间进行传递，而DAO层的方法也要接受这个Connection对象，这种做
+   法显然是不好的，这就是典型的API污染。
+** ConnectionHolder工作机制
+   ConnectionHolder的工作机制是：我们将Connection对象放在一个全局公用的地方，然
+   后在不同的操作中都从这个地方取得Connection，从而完成Connection共享的目的，这
+   也是一种ServiceLocator模式，有点像JNDI。
+
+   显然，这个类的实例是可能由多个线程读写。为了获得线程安全的ConnectionHolder类，
+   我们可以引入Java提供的ThreadLocal类，该类保证一个类的实例变量在各个线程中都有
+   一份单独的拷贝，从而不会影响其他线程中的实例变量。
+
+   #+begin_src java
+   public class SingleThreadConnectionHolder {
+       private static ThreadLocal<ConnectionHolder> localConnectionHolder = new ThreadLocal<ConnectionHolder>();
+
+       public static Connection getConnection(DataSource dataSource) throws SQLException {
+           return getConnectionHolder().getConnection(dataSource);
+       }
+
+       public static void removeConnection(DataSource dataSource) {
+           getConnectionHolder().removeConnection(dataSource);
+       }
+
+       private static ConnectionHolder getConnectionHolder() {
+          ConnectionHolder connectionHolder = localConnectionHolder.get();
+          if (connectionHolder == null) {
+              connectionHolder = new ConnectionHolder();
+              localConnectionHolder.set(connectionHolder);
+          }
+          return connectionHolder;
+      }
+   }
+   #+end_src
+
+   在ConnectionHolderBankService中，我们使用TransactionManager来管理事务，由于
+   TransactionManger和两个DAO类都是使用SingleThreadConnectionHolder来获取
+   Connection，故他们在整个事务处理过程中使用了相同的Connection对象，事务处理成
+   功。我们也可以看到，在两个DAO的withdraw和deposit方法没有接受和业务无关的对象，
+   消除了API污染；另外，使用TransactionManager来管理事务，使Service层代码也变简
+   洁了。
+** Template模式
+   Template模式的基本思想是：在超类里将完成核心功能的方法声明为抽象方法，留给子
+   类去实现，而在超类中完成一些通用操作，比如JMS的Session的建立和数据库事务的准
+   备工作等。
+
+   Template模式大家应该都很熟悉，比如spring就提供了许多Template，像JdbcTemplate
+   和JmsTemplate等。
+
+   由于TransactionTemplate只是对上一篇文章中事务处理的一层封装，故
+   TransactionManager和两个DAO类都保持和上一篇中的一样，此时他们都使用
+   SingleThreadConnectionHolder获得Connection，故事务处理成功。
+** 使用动态代理（Dynamic Proxy）完成事务
+   使用Template模式进行事务管理，这固然是一种很好的方法，但是不那么完美的地方在
+   于我们依然需要在service层中编写和事务处理相关的代码，即我们需要在service层中
+   声明一个TransactionTemplate。在本篇文章中，我们将使用Java提供的动态代理
+   （Dynamic Proxy）功能来完成事务处理，你将看到无论是在service层还是DAO层都不会
+   有事务处理代码，即他们根本就意识不到事务处理的存在。使用动态代理完成事务处理
+   也是AOP的一种典型应用。
+
+   Java动态代理的基本原理为：被代理对象需要实现某个接口（这是前提），代理对象会
+   拦截对被代理对象的方法调用，在其中可以全然抛弃被代理对象的方法实现而完成另外
+   的功能，也可以在被代理对象方法调用的前后增加一些额外的功能。在本篇文章中，我
+   们将拦截service层的transfer方法，在其调用之前加入事务准备工作，然后调用原来的
+   transfer方法，之后根据transfer方法是否执行成功决定commit还是rollback。
+
+   可以看到，通过以上动态代理实现，BareBankService中的所有public方法都被代理了，
+   即他们都被加入到事务中。这对于service层中的所有方法都需要和数据库打交道的情况
+   是可以的，本例即如此（有且只有一个transfer方法），然而对于service层中不需要和
+   数据库打交道的public方法，这样做虽然也不会出错，但是却显得多余。
+** 事务注解
+   使用动态代理的方式完成事务处理，这种方式将service层的所有public方法都加入到事
+   务中，这显然不是我们需要的，需要代理的只是那些需要操作数据库的方法。
+
+   使用注解标记事务的基本原理为：依然使用上一篇中讲到的动态代理的方式，只是在
+   InvocationHandler的invoke方法中，首先判断被代理的方法是否标记有Transactional
+   注解，如果没有则直接调用method.invoke(proxied, objects)，否则，先准备事务，在
+   调用method.invoke(proxied, objects)，然后根据该方法是否执行成功调用commit或
+   rollback。
+** 分布式事务
+   REFS:
+   - JTA原理 :: http://www.ibm.com/developerworks/cn/java/j-lo-jta/index.html
+
+   本地事务和分布式事务的区别在于：本地事务只用于处理单一数据源事务（比如单个数
+   据库），分布式事务可以处理多种异构的数据源，比如某个业务操作中同时包含了JDBC
+   和JMS或者某个操作需要访问多个不同的数据库。
+
+   Java通过JTA完成分布式事务，JTA本身只是一种规范，不同的应用服务器都包含有自己
+   的实现（比如JbossJTA），同时还存在独立于应用服务器的单独JTA实现，比如本篇中要
+   讲到的Atomikos。
+
+** JDBC事务
+*** 事务的四大特性（ACID）
+    事务的四大特性是：
+    - 原子性（Atomicity）：事务中所有操作是不可再分割的原子单位。事务中所有操作
+      要么全部执行成功，要么全部执行失败。
+    - 一致性（Consistency）：事务执行后，数据库状态与其它业务规则保持一致。如转
+      账业务，无论事务执行成功与否，参与转账的两个账号余额之和应该是不变的。
+    - 隔离性（Isolation）：隔离性是指在并发操作中，不同事务之间应该隔离开来，使
+      每个并发中的事务不会相互干扰。
+    - 持久性（Durability）：一旦事务提交成功，事务中所有的数据操作都必须被持久化
+      到数据库中，即使提交事务后，数据库马上崩溃，在数据库重启时，也必须能保证通
+      过某种机制恢复数据。
+*** MySQL中的事务
+    在默认情况下，mysql每执行一条SQL语句，都是一个单独的事务。如果需要在一个事务
+    中包含多条SQL语句，那么需要开启事务和结束事务。
+    - 开启事务：starttransaction；
+    - 结束事务：commit或rollback。
+    在执行SQL语句之前，先执行strat transaction，这就开启了一个事务（事务的起点），
+    然后可以去执行多条SQL语句，最后要结束事务，commit表示提交，即事务中的多条SQL
+    语句所做出的影响会持久化到数据库中。或者rollback，表示回滚，即回滚到事务的起
+    点，之前做的所有操作都被撤消了！
+*** JDBC事务
+    在jdbc中处理事务，都是通过Connection完成的！
+
+    同一事务中所有的操作，都在使用同一个Connection对象！
+
+    Connection的三个方法与事务相关：
+    - setAutoCommit(boolean)：设置是否为自动提交事务，如果true（默认值就是true）
+      表示自动提交，也就是每条执行的SQL语句都是一个单独的事务，如果设置false，那
+      么就相当于开启了事务了；con.setAutoCommit(false)表示开启事务！
+    - commit()：提交结束事务；con.commit();表示提交事务
+    - rollback()：回滚结束事务。con.rollback();表示回滚事务
+*** 事务隔离级别
+    事务的并发读问题
+    - 脏读：读取到另一个事务未提交数据；
+    - 不可重复读：两次读取不一致；
+    - 幻读：读到另一事务已提交数据。
+
+    并发事务问题
+    因为并发事务导致的问题大致有5类，其中两类是更新问题，三类是读问题。
+    - 脏读（dirty read）：读到另一个事务的未提交更新数据，即读取到了脏数据；
+    - 不可重复读（unrepeatable read）：对同一记录的两次读取不一致，因为另一事务对该记录做了修改；
+    - 幻读（虚读）（phantom read）：对同一张表的两次查询不一致，因为另一事务插入了一条记录；
+
+    四大隔离级别
+
+    4个等级的事务隔离级别，在相同数据环境下，使用相同的输入，执行相同的工作，根
+    据不同的隔离级别，可以导致不同的结果。不同事务隔离级别能够解决的数据并发问题
+    的能力是不同的。
+
+    - SERIALIZABLE（串行化）
+      - 不会出现任何并发问题，因为它是对同一数据的访问是串行的，非并发访问的；
+      - 性能最差；
+
+    - REPEATABLE READ（可重复读）（MySQL）
+      - 防止脏读和不可重复读，不能处理幻读问题；
+      - 性能比SERIALIZABLE好
+
+    - READ COMMITTED（读已提交数据）（Oracle）
+      - 防止脏读，没有处理不可重复读，也没有处理幻读；
+      - 性能比REPEATABLE READ好
+
+    - READ UNCOMMITTED（读未提交数据）
+      - 可能出现任何事务并发问题
+      - 性能最好
 
 * 应用服务器
 ** jboss，https://www.jboss.org/overview/
@@ -1170,71 +1578,31 @@
 ** 关系型数据库
 ** NoSQL
 ** [[http://m.blog.csdn.net/wwh578867817/article/details/50493940][为什么 MongoDB （索引）使用B-树而 Mysql 使用 B+树？]]
-** JDBC事务
-*** 事务的四大特性（ACID）
-    事务的四大特性是：
-    - 原子性（Atomicity）：事务中所有操作是不可再分割的原子单位。事务中所有操作
-      要么全部执行成功，要么全部执行失败。
-    - 一致性（Consistency）：事务执行后，数据库状态与其它业务规则保持一致。如转
-      账业务，无论事务执行成功与否，参与转账的两个账号余额之和应该是不变的。
-    - 隔离性（Isolation）：隔离性是指在并发操作中，不同事务之间应该隔离开来，使
-      每个并发中的事务不会相互干扰。
-    - 持久性（Durability）：一旦事务提交成功，事务中所有的数据操作都必须被持久化
-      到数据库中，即使提交事务后，数据库马上崩溃，在数据库重启时，也必须能保证通
-      过某种机制恢复数据。
-*** MySQL中的事务
-    在默认情况下，mysql每执行一条SQL语句，都是一个单独的事务。如果需要在一个事务
-    中包含多条SQL语句，那么需要开启事务和结束事务。
-    - 开启事务：starttransaction；
-    - 结束事务：commit或rollback。
-    在执行SQL语句之前，先执行strat transaction，这就开启了一个事务（事务的起点），
-    然后可以去执行多条SQL语句，最后要结束事务，commit表示提交，即事务中的多条SQL
-    语句所做出的影响会持久化到数据库中。或者rollback，表示回滚，即回滚到事务的起
-    点，之前做的所有操作都被撤消了！
-*** JDBC事务
-    在jdbc中处理事务，都是通过Connection完成的！
+** 分库分表
+   REFS:
+   - http://blog.csdn.net/bluishglc/article/details/7696085
+   - http://blog.csdn.net/bluishglc/article/details/6161475
+   - http://wentao365.iteye.com/blog/1740874
+   - http://www.cnblogs.com/zhongxinWang/p/4262650.html
 
-    同一事务中所有的操作，都在使用同一个Connection对象！
+   Sharding的基本思想就要把一个数据库切分成多个部分放到不同的数据库(server)上，
+   从而缓解单一数据库的性能问题。
 
-    Connection的三个方法与事务相关：
-    - setAutoCommit(boolean)：设置是否为自动提交事务，如果true（默认值就是true）
-      表示自动提交，也就是每条执行的SQL语句都是一个单独的事务，如果设置false，那
-      么就相当于开启了事务了；con.setAutoCommit(false)表示开启事务！
-    - commit()：提交结束事务；con.commit();表示提交事务
-    - rollback()：回滚结束事务。con.rollback();表示回滚事务
-*** 事务隔离级别
-    事务的并发读问题
-    - 脏读：读取到另一个事务未提交数据；
-    - 不可重复读：两次读取不一致；
-    - 幻读：读到另一事务已提交数据。
+   不太严格的讲，对于海量数据的数据库，如果是因为表多而数据多，这时候适合使用垂
+   直切分，即把关系紧密（比如同一模块）的表切分出来放在一个server上。如果表并不
+   多，但每张表的数据非常多，这时候适合水平切分，即把表的数据按某种规则（比如按
+   ID散列）切分到多个数据库(server)上。当然，现实中更多是这两种情况混杂在一起，
+   这时候需要根据实际情况做出选择，也可能会综合使用垂直与水平切分，从而将原有数
+   据库切分成类似矩阵一样可以无限扩充的数据库(server)阵列。
 
-    并发事务问题
-    因为并发事务导致的问题大致有5类，其中两类是更新问题，三类是读问题。
-    - 脏读（dirty read）：读到另一个事务的未提交更新数据，即读取到了脏数据；
-    - 不可重复读（unrepeatable read）：对同一记录的两次读取不一致，因为另一事务对该记录做了修改；
-    - 幻读（虚读）（phantom read）：对同一张表的两次查询不一致，因为另一事务插入了一条记录；
+   垂直切分的最大特点就是规则简单，实施也更为方便，尤其适合各业务之间的耦合度非
+   常低，相互影响很小，业务逻辑非常清晰的系统。在这种系统中，可以很容易做到将不
+   同业务模块所使用的表分拆到不同的数据库中。根据不同的表来进行拆分，对应用程序
+   的影响也更小，拆分规则也会比较简单清晰。
 
-    四大隔离级别
-
-    4个等级的事务隔离级别，在相同数据环境下，使用相同的输入，执行相同的工作，根
-    据不同的隔离级别，可以导致不同的结果。不同事务隔离级别能够解决的数据并发问题
-    的能力是不同的。
-
-    - SERIALIZABLE（串行化）
-      - 不会出现任何并发问题，因为它是对同一数据的访问是串行的，非并发访问的；
-      - 性能最差；
-
-    - REPEATABLE READ（可重复读）（MySQL）
-      - 防止脏读和不可重复读，不能处理幻读问题；
-      - 性能比SERIALIZABLE好
-
-    - READ COMMITTED（读已提交数据）（Oracle）
-      - 防止脏读，没有处理不可重复读，也没有处理幻读；
-      - 性能比REPEATABLE READ好
-
-    - READ UNCOMMITTED（读未提交数据）
-      - 可能出现任何事务并发问题
-      - 性能最好
+   水平切分于垂直切分相比，相对来说稍微复杂一些。因为要将同一个表中的不同数据拆
+   分到不同的数据库中，对于应用程序来说，拆分规则本身就较根据表名来拆分更为复杂，
+   后期的数据维护也会更为复杂一些。
 
 * 大数据知识
 * 网络安全知识
