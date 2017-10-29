@@ -1,0 +1,19 @@
+* Hibernate
+  一个开源的ORM框架，作用是在数据库与对象间做了一个映射，使我们在操作
+  数据库时，不需要再与复杂的SQL打交道。
+
+
+  Hibernate有六大核心接口，两个主要配置文件。
+  1. Configuration接口：负责配置并启动Hibernate
+
+     Configuration实例是一个启动期间的对象，在SessionFactory创建完成后
+     将会被丢弃，销毁。
+  2. SessionFactory接口：负责初始化Hibernate
+  3. Session接口：负责持久化对象的CRUD操作
+  4. Query接口：负责执行各种数据库查询操作
+* 优缺点
+  1. 更加对象化
+  2. 移植性好
+  3. 是一个没有入侵性的框架，不需要继承任何类，实现任何接口
+  4. 测试方便
+  5. 提高效率，生产力
