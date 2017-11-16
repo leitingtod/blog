@@ -557,6 +557,96 @@
 
 ** volume生命周期
 * Docker compose
+  Refs:
+  1. Overview https://docs.docker.com/compose/overview/
+** Step 5: [[https://docs.docker.com/compose/gettingstarted/#step-5-edit-the-compose-file-to-add-a-bind-mount][Edit the Compose file to add a bind mount]]
+   Edit docker-compose.yml in your project directory to add a bind mount for the web service:
+
+   version: '3'
+   services:
+   web:
+     build: .
+     ports:
+      - "5000:5000"
+     volumes:
+      - .:/code
+   redis:
+     image: "redis:alpine"
+
+     The new volumes key mounts the project directory (current directory) on the
+     host to /code inside the container, allowing you to modify the code on the
+     fly, *without having to rebuild the image*.
+
+** Step 7: [[https://docs.docker.com/compose/gettingstarted/#step-7-update-the-application][Update the application]]
+
+   Because the application code is now mounted into the container using a
+   volume, you can make changes to its code and see the changes instantly,
+   without having to rebuild the image.
+
+** 进入容器内部 命令 docker-compose系列
+   今天在docker-compose配置文件里面一个docker容器，然后想看里面的文件是否正确，
+   就查了进入的方法，网上说的就两种一个是docker exec -it id命令，另一个是docker
+   attach命令，发现都不行，最后卡死了，因为只有装了bash环境了容器才能进入，如果
+   装了一个mysql这种的，就会卡死。
+
+   下面介绍两个很强壮的工具，可以进入docker容器内部。
+   1. docker-compose exec container_name bash
+   2. docker-compose run container_name bash
+
+   注意是容器的name(yml中定义的name)，不是id
+
+   exec回直接进入容器，而run则是在当前容器基础上新建一个一摸一样的容器，相当于
+   clone一个吧。所以exec以后，作修改就是对原来容器的修改，而run的修改则与原来的
+   无关。
+
+
+   注意！！！这两个命令需要在右compose-up.yml配置文件的目录下执行，否则报错。
+
+** docker官方alpine/php镜像下安装php扩展
+   Ref: http://blog.csdn.net/tinyjian/article/details/55006624
+
+   官方镜像版本：7.1.1-fpm-alpine，可以从daocloud下载
+
+   该镜像中没有make命令，甚至没有gcc、g++，虽然有pecl，但是由于没有gcc编译器，所以也不能运行phpize。
+
+   其实在该镜像的/usr/local/bin目录下有一个docker-php-ext-install程序专门用来安装php扩展。
+
+   运行它即可显示出能够安装的扩展，配合docker-php-ext-enable程序可以控制扩展的启动/禁用。
+
+   例如：在该镜像中没有pdo_mysql，我们如何安装呢？
+
+   # cd /usr/local/bin
+   # ./docker-php-ext-install pdo_mysql
+
+   完成后已经load进配置文件
+
 * 容器化的优点
   1. 资源共享，提升资源利用率
   2.
+
+* 配置中国镜像
+  DaoCloud在国内提供了首个Docker Hub镜像服务，而且免费，大大提高了国内Docker用户
+  的使用热情，非常感谢DaoCloud。
+
+  使用方法:
+  1. 修改Docker配置文件/etc/default/docker(redhat: /etc/sysconfig/docker) 如下：
+     DOCKER_OPTS="--registry-mirror=http://aad0405c.m.daocloud.io"
+  2. 使用service docker restart重启Docker服务即可
+
+
+  Refs:
+  1. http://blog.csdn.net/Mr_OOO/article/details/67016309
+* Alpine Linux Cloud Image
+  lpine Linux是一个面向安全应用的轻量级Linux发行版。它采用了musl libc和busybox以
+  减小系统的体积和运行时资源消耗，同时还提供了自己的包管理工具apk。
+
+  Alpine Linux的内核都打了grsecurity/PaX补丁，并且所有的程序都编译为Position
+  Independent Executables (PIE) 以增强系统的安全性。Alpine Linux的优势和问题
+
+  优势
+
+  Alpine Linux的Docker镜像特点是轻巧（大小只有5M）且有完整的包管理工具(APK)。
+  Docker官方镜像可能会用Alpine Linux替换Ubuntu。
+
+  问题
+  Alpine Linux使用了musl，可能和其他Linux发行版使用的glibc实现会有些不同。

@@ -1,0 +1,16 @@
+* 使用nginx配置多个php-fastcgi负载均衡
+  Refs:
+  1. http://blog.csdn.net/u011630575/article/details/48184227
+
+* 如何找出nginx配置文件的所在位置
+  有时候在操作一台陌生的nginx服务器的时候，需要知道配置文件在哪里，下面教大家一种简单的方法：
+
+  先找出nginx可执行文件的路径：
+  ps -ef | grep nginx
+
+  图中显示的就是nginx可执行文件的路径
+
+  找出配置文件路径
+  /usr/local/openresty/nginx/sbin/nginx -t
+
+* 遇到问题----connect() failed (111: Connection refused) while connecting to upstream解决

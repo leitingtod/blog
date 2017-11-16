@@ -5,6 +5,75 @@
       sudo apt-key del 40976EAF437D05B5
    2. 重新下载这个密钥
       sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 40976EAF437D05B5
+* chcon/restorecon
+  Ref: http://man.linuxde.net/chcon
+
+  chcon命令是修改对象（文件）的安全上下文，比如：用户、角色、类型、安全级别。也
+  就是将每个文件的安全环境变更至指定环境。使用--reference选项时，把指定文件的安
+  全环境设置为与参考文件相同。chcon命令位于/usr/bin/chcon。
+
+  语法
+  chcon [选项]... 环境 文件...
+  chcon [选项]... [-u 用户] [-r 角色] [-l 范围] [-t 类型] 文件...
+  chcon [选项]... --reference=参考文件 文件...
+
+  选项
+  -h, --no-dereference：影响符号连接而非引用的文件。
+      --reference=参考文件：使用指定参考文件的安全环境，而非指定值。
+  -R, --recursive：递归处理所有的文件及子目录。
+  -v, --verbose：为处理的所有文件显示诊断信息。
+  -u, --user=用户：设置指定用户的目标安全环境。
+  -r, --role=角色：设置指定角色的目标安全环境。
+  -t, --type=类型：设置指定类型的目标安全环境。
+  -l, --range=范围：设置指定范围的目标安全环境。
+
+  以下选项是在指定了-R选项时被用于设置如何穿越目录结构体系。如果您指定了多于一个
+  选项，那么只有最后一个会生效。
+  -H：如果命令行参数是一个通到目录的符号链接，则遍历符号链接。
+  -L：遍历每一个遇到的通到目录的符号链接。
+  -P：不遍历任何符号链接（默认）。
+  --help：显示此帮助信息并退出。
+  --version：显示版本信息并退出。
+
+  实例
+  如果你想把这个ftp共享给匿名用户的话，需要开启以下：
+  chcon -R -t public_content_t /var/ftp
+
+  如果你想让你设置的FTP目录可以上传文件的话，SELINUX需要设置：
+  chcon -t public_content_rw_t /var/ftp/incoming
+
+  允许用户HHTP访问其家目录，该设定限仅于用户的家目录主页：
+  setsebool -P httpd_enable_homedirs 1
+  chcon -R -t httpd_sys_content_t ~user/public_html
+
+  如果你希望将samba目录共享给其他用户，你需要设置：
+  chcon -t samba_share_t /directory
+
+  共享rsync目录时：
+  chcon -t public_content_t /
+* Linux Gnome 个人目录下中文路径转英文路径
+  如果安装了中文版到CentOS之后，root目录及home目录下会出现中文到路径名，如“桌
+  面”、“文档”，“图片 、公共的” 、“下载”、 “音乐”、“ 视频”等目录，这样
+  在命令行上操作十分到不方便，需要切换输入法，总不是那么酣畅淋漓。要是能把这些中
+  文目录改成英文目录就好了；
+
+  如何修改，打开终端，在终端下输入命令：
+  export LANG=en_US
+  xdg-user-dirs-gtk-update
+
+  这个时候会弹出一个配置界面，提示是否将中文目录切换为英文目录。选中不再提示，确
+  定。系统会删除没有内容的中文目录，而有内容的目录会保持。并创建8个相应的英文目
+  录如下：“Desktop”、“Download”、“Templates”、“Public”、“Documents”、
+  “Music”、“Pictures”、“Videos”。此时，您在“位置”里看到的常用中文目录已
+  经变成英文目录；
+
+  再执行：
+  export LANG=zh_CN.UTF-8
+
+  以显示中文；
+
+  Ref：http://www.linuxdiyf.com/bbs/thread-180372-1-1.html
+
 * 如何在 Linux 中不输入密码运行 sudo 命令
   此设置在 /etc/sudoers文件中完成，这是使用 sudo 命令的默认安全策略；在用户权限
   指定部分。
@@ -45,7 +114,6 @@
   下面的行会让 sys组成员在使用 sudo 运行命令：/bin/kill、/bin/rm 时不用输入密码：
 
   %sys ALL=(ALL) NOPASSWD: /bin/kill, /bin/rm
-
 
 * Ubuntu下交换CTRL与CAPSLOCK
   sudo权限下编辑/etc/default/keyboard文件，找到XKBOPTIONSkey增加键盘配置选项（多

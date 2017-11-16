@@ -94,3 +94,51 @@
 * PECL :: The PHP Extension Community Library
 * Composer
   Ref: https://getcomposer.org/download/
+* Php-cli or Php-fpm
+  Refs:
+  1. https://www.cnblogs.com/orlion/p/5282753.html
+  2. https://segmentfault.com/q/1010000000256516
+
+  php的几种运行模式CLI、CGI、FastCGI、mod_php.
+
+  php-fpm是一个多进程架构的FastCGI服务,内置php解释器,进程后台常驻,自带进程管理器,支
+  持进程池配置,多配合Nginx使用.
+
+  Linux上自行编译的PHP默认是非线程安全的,什么时候需要线程安全呢? 比如你要使用
+  pthreads这个PHP多线程PECL扩展,或者你的PHP跑在一个多线程的容器内,比如Apache
+  event MPM,这是一个多线程的MPM.
+
+** CLI
+   Refs:
+   1. http://php.net/manual/zh/features.commandline.php
+
+   从版本 4.3.0 开始，PHP 提供了一种新类型的 CLI SAPI（Server Application
+   Programming Interface，服务端应用编程端口）支持，名为 CLI，意为 Command Line
+   Interface，即命令行接口。顾名思义，该 CLI SAPI 模块主要用作 PHP 的开发外壳应
+   用。CLI SAPI 和其它 CLI SAPI 模块相比有很多的不同之处，我们将在本章中详细阐述。
+   值得一提的是，CLI 和 CGI 是不同的 SAPI，尽管它们之间有很多共同的行为。
+
+   PHP 的命令行模式能使得 PHP 脚本能完全独立于 web 服务器单独运行。如果使用 Unix
+   系统，需要在 PHP 脚本的最前面加上一行特殊的代码，使得它能够被执行，这样系统就
+   能知道用哪个程序去运行该脚本。在 Windows 平台下可以将 php.exe 和 .php 文件的
+   双击属性相关联，也可以编写一个批处理文件来用 PHP 执行脚本。为 Unix 系统增加的
+   第一行代码不会影响该脚本在 Windows 下的运行，因此也可以用该方法编写跨平台的脚
+   本程序。以下是一个简单的 PHP 命令行程序的范例。
+** FPM
+   那PHP-FPM又是什么呢？是一个实现了Fastcgi的程序，被PHP官方收了。
+
+   大家都知道，PHP的解释器是php-cgi。php-cgi只是个CGI程序，他自己本身只能解析请
+   求，返回结果，不会进程管理（皇上，臣妾真的做不到啊！）所以就出现了一些能够调
+   度php-cgi进程的程序，比如说由lighthttpd分离出来的spawn-fcgi。好了PHP-FPM也是
+   这么个东东，在长时间的发展后，逐渐得到了大家的认可（要知道，前几年大家可是抱
+   怨PHP-FPM稳定性太差的），也越来越流行。
+
+
+   有的说，php-fpm是fastcgi进程的管理器，用来管理fastcgi进程的? 对。php-fpm的管
+   理对象是php-cgi。但不能说php-fpm是fastcgi进程的管理器，因为前面说了fastcgi是
+   个协议，似乎没有这么个进程存在，就算存在php-fpm也管理不了他（至少目前是）。
+   有的说，php-fpm是php内核的一个补丁
+
+   以前是对的。因为最开始的时候php-fpm没有包含在PHP内核里面，要使用这个功能，需
+   要找到与源码版本相同的php-fpm对内核打补丁，然后再编译。后来PHP内核集成了
+   PHP-FPM之后就方便多了，使用--enalbe-fpm这个编译参数即可。
