@@ -1,0 +1,96 @@
+* Deploy Env
+  1. PHP 7.0
+  2. Mysql 5.7
+  3. Redis 3.0
+  4. Nginx 1.8
+  5. MongoDB 3.0
+  6. BeanStalkd
+
+* Develop Env
+  1. NodeJS
+  2.
+
+* Beanstalkd
+  Refs:
+  1. http://blog.csdn.net/black_ox/article/details/24792489
+
+  Beanstalkd 是一个高性能的消息队列中间件，本博文宅鸟将介绍一下这个东东的使用。
+
+  一、先通过概念让大家了解Beanstalkd的特性和工作场景。
+
+  Beanstalkd 是一个轻量级消息中间件，它最大特点是将自己定位为基于管道 (tube) 和
+  任务 (job) 的工作队列 (work-queue)：
+
+
+  Beaanstalkd 支持任务优先级 (priority), 延时 (delay), 超时重发 (time-to-run) 和
+  预留 (buried), 能够很好的支持分布式的后台任务和定时任务处理。
+
+  它的内部实现采用 libevent, 服务器-客户端之间用类似 memcached 的轻量级通讯协议，
+  具有有很高的性能。
+
+  尽管是内存队列, beanstalkd 提供了 binlog 机制, 当重启 beanstalkd 时，当前任务
+  状态能够从纪录的本地 binlog 中恢复。
+
+
+
+  管道 (tube):管道类似于消息主题 (topic), 在一个 Beanstalkd 中可以支持多个管道,
+  每个管道都有自己的发布者 (producer) 和消费者 (consumer). 管道之间互相不影响。
+
+  任务 (job): Beanstalkd 用任务 (job) 代替消息 (message) 的概念。与消息不同，任
+  务有一系列状态：
+
+  1. READY- 需要立即处理的任务，当延时 (DELAYED) 任务到期后会自动成为当前任务；
+  2. DELAYED- 延迟执行的任务, 当消费者处理任务后, 可以用将消息再次放回 DELAYED
+     队列延迟执行；
+  3. RESERVED- 已经被消费者获取, 正在执行的任务。Beanstalkd 负责检查任务是否在
+     TTR(time-to-run) 内完成；
+  4. BURIED- 保留的任务: 任务不会被执行，也不会消失，除非有人把它 "踢" 回队列；
+  5. DELETED- 消息被彻底删除。Beanstalkd 不再维持这些消息。
+
+
+
+
+  Beanstalkd 不足:
+
+  Beanstalkd 没有提供主备同步 + 故障切换机制, 在应用中有成为单点的风险。实际应用
+  中，可以用数据库为任务 (job) 提供持久化存储。
+
+  另外, 和 memcached 类似, Beanstalkd 依赖 libevent 的单线程事件分发机制, 不能有
+  效利用多核 cpu 的性能。这一点可以通过单机部署多个实例克服。
+
+* Supervisor
+  Supervisor (http://supervisord.org) 是一个用 Python 写的进程管理工具，可以很方
+  便的用来启动、重启、关闭进程（不仅仅是 Python 进程）。除了对单个进程的控制，还
+  可以同时启动、关闭多个进程，比如很不幸的服务器出问题导致所有应用程序都被杀死，
+  此时可以用 supervisor 同时启动所有应用程序而不是一个一个地敲命令启动。
+
+* Xhprof
+  Xhprof是facebook开源出来的一个php轻量级的性能分析工具，跟Xdebug类似，但性能开
+  销更低，还可以用在生产环境中，也可以由程序开关来控制是否进行profile。
+
+* Rundeck
+  RunDeck 是用 Java/Grails 写的开源工具，帮助用户在数据中心或者云环境中自动化各
+  种操作和流程。通过命令行或者web界面，用户可以对任意数量的服务器进行操作，大大降
+  低了对服务器自动化的门槛。
+
+  RunDeck的作用：
+
+  在浏览器中执行服务器上任何非交互命令，比如ps, /etc/init.d/xxx restart，注意ssh
+  之类的要在执行中输入密码的肯定不支持
+
+  对接服务器上的一键运维脚本，变成一个Job, 执行时只要点击按钮Run
+
+  自动记录命令操作记录和输出。
+* AMP(Application Performance Management)
+  Refs:
+  1. https://www.evget.com/article/2016/5/20/24128.html
+
+  APM Tools:
+  1. New Relic
+  2. AppDynamics
+  3. SmartBear
+  4. Dynatrace
+  5. Rollbar
+* PECL :: The PHP Extension Community Library
+* Composer
+  Ref: https://getcomposer.org/download/
