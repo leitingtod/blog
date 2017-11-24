@@ -1,0 +1,4 @@
+* 查看mysql当前使用的配置文件
+  如果不知道当前使用的配置文件的路径，可以尝试下面的操作
+  which mysqld
+  /usr/local/mysql/bin/mysqld --verbose --help |grep -A 1 'Default options'
