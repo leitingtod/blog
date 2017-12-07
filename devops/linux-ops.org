@@ -145,3 +145,11 @@ alias dockercleani='docker rmi $(docker images -q -f dangling=true)'
 
 # 删除所有已经停止的容器和未打标签的镜像.
 alias dockerclean='dockercleanc || true && dockercleani'
+* Docker跑在虚拟机里时，常导致死机
+  根据运维兄弟的经验，按下列方法修改，能解决这个问题。
+
+  sudo vim /etc/default/grub
+  GRUB_CMDLINE_LINUX="cgroup_enable=memory swapaccount=1"
+  sudo update-grub
+
+  修改的内容大概意思是让docker使用swap分区和内存交换，具体含义你百度看下

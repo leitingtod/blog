@@ -1,0 +1,144 @@
+* 集群组件
+- kubernets 1.8.4
+- docker-ce latest release
+- etcd latest
+- netowrk
+  - fanneld
+  - carlio
+- security
+  - TLS
+  - RBAC
+  - kubelet TLS Bootstrapping
+- plugins
+  - kubedns
+  - kube-dashborad
+  - heapster(influxdb, grafana)
+  - EFK(es, fluentd, kibana)
+- private docker-registry
+  - harbor
+* 集群环境
+  机器配置：
+  - Ubuntu 16.04
+  - 2GB+ RAM
+  - 2Core+ CPUS on the master
+  - 所有机器之间网络互通
+  - 每台机器的 MAC， hostname, product_uuid 惟一
+  - 开放集群需要的所有端口
+  - 关闭的SWAP
+
+    Kubernetes 1.8开始要求关闭系统的Swap，如果不关闭，默认配置下kubelet将无法启
+    动。可以通过kubelet的启动参数–fail-swap-on=false更改这个限制。
+
+  机器列表：
+  |              ip | hostname  | product_uuid                         | MAC               |
+  |-----------------+-----------+--------------------------------------+-------------------|
+  | 192.168.122.245 | master-00 | 93860896-610A-260A-5214-9A1F38796143 | 52:54:00:d4:b5:e3 |
+  |  192.168.122.76 | node-00   | 9ED0CE1F-3340-D1AD-3EF1-B5F5D57F8AFF | 52:54:00:bc:c3:53 |
+
+
+  本着测试的目的，etcd 集群、kubernetes master 集群、kubernetes node 均使用这三
+  台机器。
+* 前期准备 [3/3]
+   1. [X] 检查并修改 MAC, hostname, product_uuid，确保惟一性
+      1. [X] hostname
+         1. [X] /etc/hostname
+         2. [X] /etc/hosts
+      2. [X] MAC
+         1. [X] ip link or ifconfig -a
+      3. [X] product_uuid
+         1. [X] sudo cat /sys/class/dmi/id/product_uuid
+   2. [X] 关闭 SWAP
+      1. [X] cat /proc/swaps
+      2. [X] sudo swapoff -a
+      3. [X] /etc/fstab
+      4. [X] swappiness参数调整，修改/etc/sysctl.d/k8s.conf添加下面一行：
+         vm.swappiness=0
+      5. [X] 执行sysctl -p /etc/sysctl.d/k8s.conf使修改生效
+
+   3. [X] 检查端口是否开放(为简单起见，关闭 ufw, selinux)
+      1. [X] sudo systemctl stop&&disable ufw.service
+      2. [X] 创建/etc/sysctl.d/k8s.conf文件，添加如下内容)：
+         net.bridge.bridge-nf-call-ip6tables = 1
+         net.bridge.bridge-nf-call-iptables = 1
+      3. [X] 执行sysctl -p /etc/sysctl.d/k8s.conf使修改生效
+         1. [X]  Ubuntu16.04上 提示无此文件夹
+      4. [X] 禁用SELINUX (Ubuntu 16.04 无此功能)
+         1. [X] setenforce 0
+            1. [X] Ubuntu16.04上 无此命令
+         2. [X] vi /etc/selinux/config
+            SELINUX=disabled
+            1. [X] Ubuntu16.04上 无此文件
+
+* 安装 Docker
+  1. [X] 更改APT源
+  2. [X] 安装 docker-ce latest
+     #begin_src bash
+     apt-get update
+     apt-get install -y \
+     apt-transport-https \
+     ca-certificates \
+     curl \
+     software-properties-common
+     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+     add-apt-repository \
+     "deb [arch=amd64] https://download.docker.com/linux/$(. /etc/os-release; echo "$ID") \
+     $(lsb_release -cs) \
+     stable"
+     apt-get update && apt-get install -y docker-ce=$(apt-cache madison docker-ce | grep 17.09 | head -1 | awk '{print $3}')
+     #end_src
+
+* 安装 kubeadm, kubectl, kubelet
+  1. [X] 添加源, 在VM中，无法使用代理，放弃，在本机下下载 deb
+  2. [X] Docker从1.13版本开始调整了默认的防火墙规则，禁用了iptables filter表中
+     FOWARD链，这样会引起Kubernetes集群中跨Node的Pod无法通信，在各个Docker节点执
+     行下面的命令：iptables -P FORWARD ACCEPT
+
+     可在docker的systemd unit文件中以ExecStartPost加入上面的命令：
+
+     ExecStartPost=/usr/sbin/iptables -P FORWARD ACCEPT
+     systemctl daemon-reload
+     systemctl restart docker
+  3. kubeadm init --token=abcdef.1234567890abcdef --pod-network-cidr=10.244.0.0/16 --kubernetes-version=v1.8.4 --apiserver-advertise-address=192.168.122.245
+
+* 集群部署目标
+  1. 一个安全的集群
+  2. 集群创建的所有Pods之间网络互通
+  3. 成功创建一个用户示例应用
+
+* 集群环境变量
+  #begin_src bash
+  # TLS Bootstrapping 使用的 Token，可以使用命令 head -c 16 /dev/urandom | od -An -t x | tr -d ' ' 生成
+  BOOTSTRAP_TOKEN="41f7e4ba8b7be874fcff18bf5cf41a7c"
+
+  # 建议用 未用的网段 来定义服务网段和 Pod 网段
+
+  # 服务网段 (Service CIDR），部署前路由不可达，部署后集群内使用 IP:Port 可达
+  SERVICE_CIDR="10.254.0.0/16"
+
+  # POD 网段 (Cluster CIDR），部署前路由不可达，**部署后**路由可达 (flanneld 保证)
+  CLUSTER_CIDR="172.30.0.0/16"
+
+  # 服务端口范围 (NodePort Range)
+  NODE_PORT_RANGE="8400-9000"
+
+  # etcd 集群服务地址列表
+  ETCD_ENDPOINTS="https://10.64.3.7:2379,https://10.64.3.8:2379,https://10.66.3.86:2379"
+
+  # flanneld 网络配置前缀
+  FLANNEL_ETCD_PREFIX="/kubernetes/network"
+
+  # kubernetes 服务 IP (预分配，一般是 SERVICE_CIDR 中第一个IP)
+  CLUSTER_KUBERNETES_SVC_IP="10.254.0.1"
+
+  # 集群 DNS 服务 IP (从 SERVICE_CIDR 中预分配)
+  CLUSTER_DNS_SVC_IP="10.254.0.2"
+
+  # 集群 DNS 域名
+  CLUSTER_DNS_DOMAIN="cluster.local."
+  #end_src
+
+  把全局变量定义脚本拷贝到所有机器的 /root/kube-bin/1.8.4 目录。
+** 创建 CA 证书和秘钥
+  kubernetes 系统各组件需要使用 TLS 证书对通信进行加密，本文档使用 CloudFlare 的
+  PKI 工具集 cfssl 来生成 Certificate Authority (CA) 证书和秘钥文件，CA 是自签名
+  的证书，用来签名后续创建的其它 TLS 证书。
