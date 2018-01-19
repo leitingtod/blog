@@ -1,0 +1,86 @@
+* 存储
+** Volumes
+   In Docker:
+   1. a volume is simple a directory on disk or in another container
+   2. lifetimes are not managed and util recently there were only local-disk-backed volumes
+   3. provides volume drivers, but the functionality is very limited for now
+
+   In Kubernetes:
+   1. has explicit lifetime - the same as the pod that encloses it.
+   2. Consequently, a volume is outlives any containers that run within the pod,
+      and data is preserved across Container restarts.
+   3. supports many types of volumes and a Pod can use any number of them
+      simultaneously
+   4. volumes can't mount onto other volumes or have hard links to other volumes
+   5. each container in the pod must independently specify where to mount each
+      volume
+*** type of volumes [0/0]
+**** cephfs
+     *Important*: You must have your own Ceph server running with the share
+     exported before you can use it.
+
+     - when a pod is removed, the contents of a ceph volume are preserved and
+       the volume is merely unmounted
+     - CephFS can be mounted by multiple writers simultaneously
+
+**** emptyDir                                                          :pass:
+     An emptyDir volume is first created when a Pod is assigned to a Node, and
+     exist as long as that Pod is running on that node.
+
+     - a container crashing does NOT remove a pod from a node, so the data in a
+       emptyDir is safe across containers crashes
+     - when a Pod is removed from a node for any reason, the data in the
+       emptyDir id deleted forever
+
+**** gitRepo                                                           :pass:
+     an example of what can be done as a volume plugin
+
+**** glusterfs
+     same as cephfs
+
+**** hostPath                                                          :pass:
+     A hostPath volume mounts a file or directory from the host node’s
+     filesystem into your pod.
+
+**** local                                                         :selected:
+     A local volume represents a mounted local storage device such as a disk,
+     partition or directory.
+
+     - can only be used as a statically created PersistentVolume
+     - Compared to HostPath volumes, local volumes can be used in a durable
+       manner without manually scheduling pods to nodes, as the system is aware
+       of the volume’s node constraints by looking at the node affinity on the
+       PersistentVolume
+     - local volumes are still subject to the availability of the underlying
+       node and are not suitable for all applications.
+
+**** nfs                                                           :selected:
+**** persistentVolumeClaim                                         :selected:
+**** projected
+**** secret
+**** storageos
+** Persistent Volumes
+   A PersistentVolume (PV) is a piece of storage in the cluster that has been
+   provisioned by an administrator.
+
+   A PersistentVolumeClaim (PVC) is a request for storage by a user.
+
+   Cluster administrators need to be able to offer a variety of
+   PersistentVolumes that differ in more ways than just size and access modes,
+   without exposing users to the details of how those volumes are implemented.
+   For these needs there is the *StorageClass* resource.
+
+   - provisioning
+     - static
+     - dynamic
+
+       当集群上未找到用户 persistentVolumeClaim 中指定的PV时，集群会动态的根据用
+       户的PVC创建一个PV，PV的类型通过 storageclass 指定。管理员需要在 apiserver
+       的 启用 defaultStorageClass admission controller。
+   - binding
+   -
+
+
+
+** Storage Classes
+** Dynamic Volume Provisioning

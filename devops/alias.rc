@@ -1,0 +1,44 @@
+alias br='sudo brctl'
+alias et='emacsclient -t'
+alias ec='emacsclient -c&'
+alias ed='emacs --daemon'
+alias es='sudo emacs -nw -q'
+alias em='emacs -nw'
+alias apt='sudo apt-get'
+alias apc='sudo apt-cache'
+alias dc='sudo docker-compose'
+alias dk='sudo docker'
+alias dki='sudo docker images'
+alias dks='sudo docker ps'
+alias dksa='sudo docker ps -a'
+alias dkl='sudo docker login 192.168.0.247:80 -u'
+
+
+# 杀死所有正在运行的容器.
+alias dkillall='sudo docker kill $(sudo docker ps -a -q)'
+
+# 删除所有已经停止的容器.
+alias dkrmall='sudo docker rm $(sudo docker ps -a -q)'
+
+# 删除所有未打标签的镜像.
+alias dkrmiall='sudo docker rmi $(sudo docker images -q -f dangling=true)'
+
+# 删除所有已经停止的容器和未打标签的镜像.
+alias dkcleanall='dkrmall || true && dkrmiall'
+
+alias kl='kubectl'
+alias kg='kubectl get'
+alias kgp='kubectl get profiles'
+alias kgn='kubectl get no --show-labels'
+
+alias kw='kubectl get -o wide'
+alias ks='kubectl describe'
+alias kc='kubectl create'
+alias kd='kubectl delete'
+alias ka='kubectl apply'
+
+alias sc='sudo systemctl'
+alias scr='sudo systemctl daemon-reload'
+alias scs='sudo systemctl status'
+alias scu='sudo systemctl restart'
+alias scd='sudo systemctl stop'

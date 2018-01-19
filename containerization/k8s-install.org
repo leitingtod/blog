@@ -30,10 +30,10 @@
     动。可以通过kubelet的启动参数–fail-swap-on=false更改这个限制。
 
   机器列表：
-  |              ip | hostname  | product_uuid                         | MAC               |
-  |-----------------+-----------+--------------------------------------+-------------------|
-  | 192.168.122.245 | master-00 | 93860896-610A-260A-5214-9A1F38796143 | 52:54:00:d4:b5:e3 |
-  |  192.168.122.76 | node-00   | 9ED0CE1F-3340-D1AD-3EF1-B5F5D57F8AFF | 52:54:00:bc:c3:53 |
+  |              ip | hostname  | product_uuid | MAC |
+  |-----------------+-----------+--------------+-----|
+  | 192.168.122.196 | master-00 |              |     |
+  |  192.168.122.99 | node-00   |              |     |
 
 
   本着测试的目的，etcd 集群、kubernetes master 集群、kubernetes node 均使用这三
@@ -73,6 +73,9 @@
   1. [X] 更改APT源
   2. [X] 安装 docker-ce latest
      #begin_src bash
+     add aliyun apt
+     deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/linux/ubuntu artful stable edge
+     # or
      apt-get update
      apt-get install -y \
      apt-transport-https \
@@ -89,56 +92,49 @@
 
 * 安装 kubeadm, kubectl, kubelet
   1. [X] 添加源, 在VM中，无法使用代理，放弃，在本机下下载 deb
+     - # virt-manager: src=localhost/dir, target=/home/anyuan/share
+     - # mkdir /tmp/host_files
+     - # mount -t 9p -o trans=virtio,version=9p2000.L /home/anyuan/share /tmp/host_files
+
   2. [X] Docker从1.13版本开始调整了默认的防火墙规则，禁用了iptables filter表中
      FOWARD链，这样会引起Kubernetes集群中跨Node的Pod无法通信，在各个Docker节点执
      行下面的命令：iptables -P FORWARD ACCEPT
 
-     可在docker的systemd unit文件中以ExecStartPost加入上面的命令：
+     可在docker的systemd unit文件(/lib/systemd/system/docker.service)中以ExecStartPost加入上面的命令：
 
      ExecStartPost=/usr/sbin/iptables -P FORWARD ACCEPT
      systemctl daemon-reload
      systemctl restart docker
-  3. kubeadm init --token=abcdef.1234567890abcdef --pod-network-cidr=10.244.0.0/16 --kubernetes-version=v1.8.4 --apiserver-advertise-address=192.168.122.245
+  3. ENV
+     export KUBE_REPO_PREFIX="192.168.0.247:80/library"
+     export KUBE_ETCD_IMAGE="192.168.0.247:80/library/etcd-amd64:3.0.17"
 
-* 集群部署目标
-  1. 一个安全的集群
-  2. 集群创建的所有Pods之间网络互通
-  3. 成功创建一个用户示例应用
+  4. kubeadm init --token=abcdef.1234567890abcdef --pod-network-cidr=10.244.0.0/16 --kubernetes-version=v1.8.4 --apiserver-advertise-address=192.168.122.196
+     - vim /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
 
-* 集群环境变量
-  #begin_src bash
-  # TLS Bootstrapping 使用的 Token，可以使用命令 head -c 16 /dev/urandom | od -An -t x | tr -d ' ' 生成
-  BOOTSTRAP_TOKEN="41f7e4ba8b7be874fcff18bf5cf41a7c"
+       为kubelet添加一个额外的参数 // 这样kubelet就不会在启动pod的时候去墙外的k8s仓库拉取pause-amd64:3.0镜像了
+       --pod-infra-container-image=docker.cinyi.com:443/senyint/pause-amd64:3.0
 
-  # 建议用 未用的网段 来定义服务网段和 Pod 网段
+       Environment="KUBELET_INFRA_IMAGE=--pod-infra-container-image=docker.cinyi.com:443/senyint/pause-amd64:3.0"
 
-  # 服务网段 (Service CIDR），部署前路由不可达，部署后集群内使用 IP:Port 可达
-  SERVICE_CIDR="10.254.0.0/16"
+     - [preflight] Some fatal errors occurred: Port 10250 is in use
 
-  # POD 网段 (Cluster CIDR），部署前路由不可达，**部署后**路由可达 (flanneld 保证)
-  CLUSTER_CIDR="172.30.0.0/16"
+       kubeadm会自动检查当前环境是否有上次命令执行的“残留”。如果有，必须清理后再
+       行执行init。我们可以通过”kubeadm reset”来清理环境，以备重来。
 
-  # 服务端口范围 (NodePort Range)
-  NODE_PORT_RANGE="8400-9000"
+* Addons
+** StorageOS
+   docker run -d --name storageos -e storageos-01 -e ADVERTISE_IP=192.168.0.181 -e JOIN=192.168.0.181,192.168.0.182,192.168.0.183 --net=host --pid=host --privileged --cap-add SYS_ADMIN --device /dev/fuse -v /var/lib/storageos:/var/lib/storageos:rshared -v /run/docker/plugins:/run/docker/plugins storageos/node:0.9.0 server
+** Helm
+   operate from bastion-client by docker
+   mount program to anyuan home
 
-  # etcd 集群服务地址列表
-  ETCD_ENDPOINTS="https://10.64.3.7:2379,https://10.64.3.8:2379,https://10.66.3.86:2379"
+** Harbor
+   Refs:
+   - https://github.com/vmware/harbor
 
-  # flanneld 网络配置前缀
-  FLANNEL_ETCD_PREFIX="/kubernetes/network"
+*** [[https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/][k8s 访问 Harbor]]
+    kubectl create secret docker-registry harbor-registry-secret --docker-server=dockerhub.aysaas.com --docker-username=liuyazhou --docker-password=leiting88Q --docker-email=test@test.com
 
-  # kubernetes 服务 IP (预分配，一般是 SERVICE_CIDR 中第一个IP)
-  CLUSTER_KUBERNETES_SVC_IP="10.254.0.1"
-
-  # 集群 DNS 服务 IP (从 SERVICE_CIDR 中预分配)
-  CLUSTER_DNS_SVC_IP="10.254.0.2"
-
-  # 集群 DNS 域名
-  CLUSTER_DNS_DOMAIN="cluster.local."
-  #end_src
-
-  把全局变量定义脚本拷贝到所有机器的 /root/kube-bin/1.8.4 目录。
-** 创建 CA 证书和秘钥
-  kubernetes 系统各组件需要使用 TLS 证书对通信进行加密，本文档使用 CloudFlare 的
-  PKI 工具集 cfssl 来生成 Certificate Authority (CA) 证书和秘钥文件，CA 是自签名
-  的证书，用来签名后续创建的其它 TLS 证书。
+* Apps
+** qycloud

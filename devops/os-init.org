@@ -1,0 +1,94 @@
+* basic
+** bashrc alias
+   alias br='sudo brctl'
+   alias et='emacsclient -t'
+   alias ec='emacsclient -c&'
+   alias ed='emacs --daemon'
+   alias es='sudo emacs -nw -q'
+   alias em='emacs -nw'
+   alias apt='sudo apt-get'
+   alias apc='sudo apt-cache'
+   alias dc='sudo docker-compose'
+   alias dk='sudo docker'
+   alias dki='sudo docker images'
+   alias dks='sudo docker ps'
+   alias dksa='sudo docker ps -a'
+   alias dkl='sudo docker login 192.168.0.247:80 -u'
+
+
+   # 杀死所有正在运行的容器.
+   alias dkillall='sudo docker kill $(sudo docker ps -a -q)'
+
+   # 删除所有已经停止的容器.
+   alias dkrmall='sudo docker rm $(sudo docker ps -a -q)'
+
+   # 删除所有未打标签的镜像.
+   alias dkrmiall='sudo docker rmi $(sudo docker images -q -f dangling=true)'
+
+   # 删除所有已经停止的容器和未打标签的镜像.
+   alias dkcleanall='dkrmall || true && dkrmiall'
+
+   copy alias >> .bashrc
+** init dirs
+   mkdir app
+   mkdir program
+** apt
+   1. add aliyun apt (set by gui or sources.list)
+   2. apt-get install apt-transport-https ca-certificates curl software-properties-common
+
+** gnome tweak
+   apt-get install gnome-tweak
+
+** ssh-key
+   ssh-keygen
+   add ssh-key to github, coding.net
+
+** git
+   git git-gui gitk
+
+   copy .gitconfig to ~/.gitconfig
+
+** emacs
+   git clone git@github.com:leitingtod/emacs.d.git
+   cd ~ && rm -rf .emacs.d
+   ln -s ~/program/emacs.d .emacs.d
+
+** fcitx
+   apt-get install fcitx fcitx-table-wubi-large
+
+** fonts-wqy-microhei
+   apt-get install fonts-wqy-microhei
+
+** xdg-user-dirs-gtk-update
+   export LANG=en.US
+   xdg-user-dirs-gtk-update
+   logout
+
+** xx-net
+   1. download xx-net
+   2. apt-get install miredo
+   3. service miredo start
+   4. systemctl enable miredo.servie
+
+** chromium
+   1. apt-get install chromium-browser
+   2. chrome extenstion for gnome extension
+   3. chrome-gnome-shell-connect
+
+      add-apt-repository ppa:ne0sight/chrome-gnome-shell
+      apt-get update && sudo apt-get install chrome-gnome-shell
+
+** install python-pip ansiable
+* Docker
+  1. add aliyun docker-ce sourcelist
+
+     deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/linux/ubuntu artful stable edge
+     apt-get update && apt-get install docker-ce
+
+  2. download docker-compose
+     https://github.com/docker/compose/releases/download/{version}/docker-compose-Linux-x86_64
+
+* Virt manager
+  1. apt-get install virt-manager qemu-system
+
+** install kubenets on vm

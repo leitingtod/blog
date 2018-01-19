@@ -1,0 +1,44 @@
+* Pipeline CI/CD tools
+** jenkins pipeline plugin
+*** example [/]
+    - [[https://medium.com/@zarkopafilis/building-a-ci-system-for-go-with-jenkins-4ab04d4bacd0][Building a CI system for Go, with Jenkins]]
+** gocd
+** concourse
+   - container oriented. Every build step is also executed in a container, so
+     you effectively get a guaranteed clean environment every single build.
+   - Plugins can be written in ANY language. You know a language? Great, you can
+     write a plugin. Even if that language is bash, no worries. You simply build
+     a Docker image that can execute in, out, and check and it works. The power
+     of this can't be understated.
+   - Highly scalable. Workers just don't care about anything as long as they can
+     talk to the ATC. I can press a button and scale it up or down, or upgrade
+     the version without a problem. The only thing that has to be persistent
+     really is the database.
+   - The config files are very human readable. Jenkins pipelines are whatever,
+     but Concourse definitions basically serve as a whole backup. They specify
+     what resources you need and will pull them if they don't have it. Just very
+     versatile.
+
+** drone
+** flow.ci
+** spinnaker
+* comparision table
+  | tool      | Easy Setup | plugin mechanism             | Fancy UI  | UI/UE                                                |
+  | jenkins 2 | Yes        | Jar, Groovy ecosystem        |           | pipeline的每个阶段的时长，显示直观明显               |
+  | concourse | Yes        | Pluggable Resource Interface |           | UI太简单，但能显示拓扑显示时长较小，页面简单，但直观 |
+  | gocd      |            |                              |           |                                                      |
+  |-----------+------------+------------------------------+-----------+------------------------------------------------------|
+  | drone     | Yes        |                              |           | 使用不是太方便，按官方文档总有坑                     |
+  | flow.ci   | Yes        |                              |           |                                                      |
+  | circle ci |            |                              |           |                                                      |
+  | spinnaker | No         |                              |           | 现代                                                 |
+
+| tool      | Pipeline As First | Snowflakes       | Everything requires plugins  | Notify           | Dynamic provison Agent to K8S | Containerized Builds | Deployment to K8S |
+| jenkins 2 | Yes               | No: Jenkinsfiles | No: use groovy and ecosystem | Email, BerryChat | YES                           | YES                  | YES               |
+| concourse | Yes               | No: yaml         |                              | Email            |                               | YES                  | Third Party       |
+| gocd      | Yes               | No: yaml         |                              |                  |                               |                      |                   |
+|-----------+-------------------+------------------+------------------------------+------------------+-------------------------------+----------------------+-------------------|
+| drone     |                   |                  |                              |                  |                               |                      | Planning          |
+| flow.ci   |                   |                  |                              |                  |                               | NO                   |                   |
+| circle ci |                   |                  |                              |                  |                               |                      |                   |
+| spinnaker |                   |                  |                              |                  |                               |                      |                   |

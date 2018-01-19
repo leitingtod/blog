@@ -153,3 +153,50 @@ alias dockerclean='dockercleanc || true && dockercleani'
   sudo update-grub
 
   修改的内容大概意思是让docker使用swap分区和内存交换，具体含义你百度看下
+* Shell get primary ip
+  ip route get 1 | awk '{print $NF;exit}'
+  hostname -I : get all IPs
+* docker usage
+** usage with stopped containers
+   sudo docker system df
+   TYPE                TOTAL               ACTIVE              SIZE                RECLAIMABLE
+   Images              27                  14                  3.549GB             2.093GB (58%)
+   Containers          83                  9                   8.7GB               8.697GB (99%)
+   Local Volumes       18                  5                   395.8MB             63.03MB (15%)
+   Build Cache                                                 0B                  0B
+** usage after delete stopped containers
+   docker system df
+   TYPE                TOTAL               ACTIVE              SIZE                RECLAIMABLE
+   Images              27                  9                   3.549GB             2.101GB (59%)
+   Containers          9                   9                   3.393MB             0B (0%)
+   Local Volumes       18                  5                   395.8MB             63.03MB (15%)
+   Build Cache                                                 0B                  0B
+** docker ps --size
+   CONTAINER ID        IMAGE                                             COMMAND                  CREATED             STATUS              PORTS                              NAMES                            SIZE
+   0b94589478c5        192.168.0.247:80/library/php:7.0-ubuntu-14.04     "./start.sh"             About an hour ago   Up About an hour                                       dockerdev_php_1                  3.35MB (virtual 441MB)
+   2f0fe6184836        192.168.0.247:80/library/nginx:1.13.7-alpine      "nginx -g 'daemon of…"   About an hour ago   Up About an hour    0.0.0.0:7777->80/tcp               dockerdev_nginx_1                2B (virtual 15.5MB)
+   d4b96f2d7138        192.168.0.247:80/library/beanstalkd:1.10-alpine   "beanstalkd -p 11300…"   About an hour ago   Up About an hour    11300/tcp                          dockerdev_beanstalkd_1           0B (virtual 5.02MB)
+   b5a536689800        192.168.0.247:80/library/redis:4.0.6-alpine       "docker-entrypoint.s…"   About an hour ago   Up About an hour    6379/tcp                           dockerdev_redis_1                0B (virtual 27MB)
+   86adb1fdefa8        192.168.0.247:80/library/mongo:3.4.10-jessie      "docker-entrypoint.s…"   About an hour ago   Up About an hour    27017/tcp                          dockerdev_mongo_1                0B (virtual 361MB)
+   5271c90cdd19        192.168.0.247:80/library/mysql:5.6.38-jessie      "docker-entrypoint.s…"   About an hour ago   Up About an hour    3306/tcp                           dockerdev_mysql_1                6.58kB (virtual 346MB)
+   15e8027266f2        192.168.0.247:80/library/node:9.3.0-alpine        "./start.sh"             About an hour ago   Up About an hour                                       dockerdev_node_1                 0B (virtual 122MB)
+   35e77668d234        7c2bde9ba986                                      "./start.sh"             2 hours ago         Up 2 hours                                             dockerdev_php-ubuntu-dev_run_5   3.24kB (virtual 639MB)
+   0f1ac428f124        rancher/server:preview                            "/usr/bin/entry /usr…"   6 days ago          Up 4 days           3306/tcp, 0.0.0.0:8080->8080/tcp   inspiring_benz                   33.6kB (virtual 1.35GB)
+
+** docker stats
+   CONTAINER ID        NAME                             CPU %               MEM USAGE / LIMIT     MEM %               NET I/O             BLOCK I/O           PIDS
+   0b94589478c5        dockerdev_php_1                  0.03%               107.8MiB / 7.697GiB   1.37%               24.8MB / 598kB      51MB / 92.7MB       16
+   2f0fe6184836        dockerdev_nginx_1                0.00%               6.914MiB / 7.697GiB   0.09%               54.9kB / 0B         332kB / 0B          9
+   d4b96f2d7138        dockerdev_beanstalkd_1           0.00%               760KiB / 7.697GiB     0.01%               59kB / 1.26kB       1.11MB / 0B         1
+   b5a536689800        dockerdev_redis_1                0.11%               1.98MiB / 7.697GiB    0.03%               57.8kB / 0B         4.71MB / 0B         4
+   86adb1fdefa8        dockerdev_mongo_1                0.62%               32.27MiB / 7.697GiB   0.41%               57.8kB / 0B         6.46MB / 17.3MB     21
+   5271c90cdd19        dockerdev_mysql_1                0.06%               179.7MiB / 7.697GiB   2.28%               59.3kB / 1.42kB     43.7MB / 160kB      22
+   15e8027266f2        dockerdev_node_1                 0.10%               2.098MiB / 7.697GiB   0.03%               58.2kB / 0B         2.96MB / 0B         2
+   35e77668d234        dockerdev_php-ubuntu-dev_run_5   0.03%               70.26MiB / 7.697GiB   0.89%               200kB / 2.11kB      150MB / 13.8MB      16
+   0f1ac428f124        inspiring_benz                   1.13%               255.3MiB / 7.697GiB   3.24%               13.9MB / 3.66MB     2.72GB / 41.6GB     196
+* php 如何访问内部端口
+  http://www.master.aysaas.com:31831/service_org/services/organization/node/getPrefixName?_params=eyIwIjoiQXBpVGVzdCIsIjEiOiJtZW1iZXIiLCJjcm9zc19lbnRlcnByaXNlX2lkIjoiQVBJQ2VTaGlRaVllIn0=&_time=1515490665&_debug=XYZ&_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ3d3cucXljbG91ZC5jb20uY24iLCJhdWQiOiJ3d3cucXljbG91ZC5jb20uY24iLCJpYXQiOjE1MTU0OTA2NjUsIm5iZiI6MTUxNTQ5MDY2NSwiZXhwIjoxNTE2MTgxODY1LCJlbnRlcnByaXNlX2lkIjoiQVBJQ2VTaGlRaVllIiwiZmlsZWlvX2RvbWFpbiI6Imh0dHA6XC9cL2ZpbGVpby5tYXN0ZXIuYXlzYWFzLmNvbTozMTgzMSIsInN0YXRpY19kb21haW4iOiJodHRwOlwvXC9zdGF0aWMubWFzdGVyLmF5c2Fhcy5jb206MzE4MzEiLCJkaXNhYmxlZCI6ImZhbHNlIiwidHlwZSI6NiwidXNlcl9pZCI6IkFwaVRlc3QiLCJyZWFsX25hbWUiOiJcdTRmMDFcdTRlMWFcdTdiYTFcdTc0MDZcdTU0NTgiLCJzZXgiOjAsImVtYWlsIjoiIiwicGhvbmUiOiIiLCJ0aXRsZSI6IkFQSVx1NmQ0Ylx1OGJkNVx1NGYwMVx1NGUxYSJ9.-C_7Hn6Sjvn5ueBteTC4JOhdC5j-5Q3XW4J_LtFEo8E
+
+ http://www.master.aysaas.com:80/service_org/services/organization/node/getPrefixName?_params=eyIwIjoiQXBpVGVzdCIsIjEiOiJtZW1iZXIiLCJjcm9zc19lbnRlcnByaXNlX2lkIjoiQVBJQ2VTaGlRaVllIn0=&_time=1515490665&_debug=XYZ&_token=eyIwIjoiQXBpVGVzdCIsIjEiOiJtZW1iZXIiLCJjcm9zc19lbnRlcnByaXNlX2lkIjoiQVBJQ2VTaGlRaVllIn0=&_time=1515490665&_debug=XYZ&_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ3d3cucXljbG91ZC5jb20uY24iLCJhdWQiOiJ3d3cucXljbG91ZC5jb20uY24iLCJpYXQiOjE1MTU0OTA2NjUsIm5iZiI6MTUxNTQ5MDY2NSwiZXhwIjoxNTE2MTgxODY1LCJlbnRlcnByaXNlX2lkIjoiQVBJQ2VTaGlRaVllIiwiZmlsZWlvX2RvbWFpbiI6Imh0dHA6XC9cL2ZpbGVpby5tYXN0ZXIuYXlzYWFzLmNvbTozMTgzMSIsInN0YXRpY19kb21haW4iOiJodHRwOlwvXC9zdGF0aWMubWFzdGVyLmF5c2Fhcy5jb206MzE4MzEiLCJkaXNhYmxlZCI6ImZhbHNlIiwidHlwZSI6NiwidXNlcl9pZCI6IkFwaVRlc3QiLCJyZWFsX25hbWUiOiJcdTRmMDFcdTRlMWFcdTdiYTFcdTc0MDZcdTU0NTgiLCJzZXgiOjAsImVtYWlsIjoiIiwicGhvbmUiOiIiLCJ0aXRsZSI6IkFQSVx1NmQ0Ylx1OGJkNVx1NGYwMVx1NGUxYSJ9.-C_7Hn6Sjvn5ueBteTC4JOhdC5j-5Q3XW4J_LtFEo8E
+* 路由映射
+  ssh anyuan@10.0.0.13 -p 225

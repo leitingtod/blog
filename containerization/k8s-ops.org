@@ -1,0 +1,28 @@
+* 多租户 [0/1]
+** TODO [#B] 验证多租户的功能
+** 网络隔离 Calico
+
+* 存储 [0/2]
+
+** TODO [#A] 动态分配
+
+** TODO 可靠的文件服务系统 [0/3]
+
+*** TODO [#B] glusterfs
+*** TODO storage os
+*** TODO ceph
+
+* Helm 服务器 [0/2]
+
+** WORKING 使用本地文件安装 Helm Charts
+** TODO [#B] 根据 kubernetes/charts搭建一个自己的 Helm 服务器，镜像使用 aliyun
+** tiller的作用
+* CI/CD
+** 映射外网端口 31506
+   xxx.aysaas.com 对应的是 外网的 221.xxx地址
+   通过访问 xxx.aysaas.com:31506 可访问到 192.168.0.182 的 31506 端口
+   通过 Panbit 实现
+* 记一次停电记录
+  1. 等待所有节点运行
+  2. 查看集群状态
+  3. kubelet 启动即可
