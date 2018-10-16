@@ -1,4 +1,4 @@
-* 存储
+* Storage
 ** Volumes
    In Docker:
    1. a volume is simple a directory on disk or in another container
@@ -59,6 +59,15 @@
 **** projected
 **** secret
 **** storageos
+*** nfsv4 vs cephfs vs glusterfs vs LizardFS vs etc.
+    REF: 
+    - https://www.jdieter.net/posts/2017/08/14/benchmarking-small-file-performance-on-distributed-filesystems/
+    - https://indico.cern.ch/event/214784/contributions/1512447/attachments/340854/475673/storage_donvito_chep_2013.pdf
+    - https://www.slideshare.net/azilian/comparison-of-foss-distributed-storage
+    - https://www.reddit.com/r/sysadmin/comments/5uulqm/best_distributed_file_system_glusterfs_vs_ceph_vs/
+*** fio test in NFS
+    ./fio-test.log
+
 ** Persistent Volumes
    A PersistentVolume (PV) is a piece of storage in the cluster that has been
    provisioned by an administrator.
@@ -80,7 +89,80 @@
    - binding
    -
 
-
-
 ** Storage Classes
 ** Dynamic Volume Provisioning
+* Ingress
+** TLS
+*** 在 k8s 中自动提供和管理TLS证书
+* Feature
+** IPVS-Based In-Cluster Load Balancing Deep Dive
+   Ref:
+   - https://kubernetes.io/zh/blog/
+
+   根据 Kubernetes 1.11 发布的博客文章, 我们宣布基于 IPVS 的集群内部服
+   务负载均衡已达到一般可用性。
+***  什么是 IPVS ?
+    IPVS (IP Virtual Server)是在 Netfilter 上层构建的，并作为 Linux 内
+    核的一部分，实现传输层负载均衡。
+
+    IPVS 集成在 LVS（Linux Virtual Server，Linux 虚拟服务器）中，它在主
+    机上运行，并在物理服务器集群前作为负载均衡器。
+
+    IPVS 可以将基于 TCP 和 UDP 服务的请求定向到真实服务器，并使真实服务
+    器的服务在单个IP地址上显示为虚拟服务。 因此，IPVS 自然支持
+    Kubernetes 服务。
+*** 为什么为 Kubernetes 选择 IPVS ?
+
+    随着 Kubernetes 的使用增长，其资源的可扩展性变得越来越重要。特别是，
+    服务的可扩展性对于运行大型工作负载的开发人员/公司采用 Kubernetes
+    至关重要。
+
+    Kube-proxy 是服务路由的构建块，它依赖于经过强化攻击的 iptables 来
+    实现支持核心的服务类型，如 ClusterIP 和 NodePort。 但是，iptables
+    难以扩展到成千上万的服务，因为它纯粹是为防火墙而设计的，并且基于内
+    核规则列表。
+
+    尽管 Kubernetes 在版本v1.6中已经支持5000个节点，但使用 iptables 的
+    kube-proxy 实际上是将集群扩展到5000个节点的瓶颈。 一个例子是，在
+    5000节点集群中使用 NodePort 服务，如果我们有2000个服务并且每个服务
+    有10个 pod，这将在每个工作节点上至少产生20000个 iptable 记录，这可
+    能使内核非常繁忙。
+
+    另一方面，使用基于 IPVS 的集群内服务负载均衡可以为这种情况提供很多
+    帮助。 IPVS 专门用于负载均衡，并使用更高效的数据结构（哈希表），允
+    许几乎无限的规模扩张。
+** Kubernetes-Network-Policy and APIs
+   网络隔离可以通过定义命名空间， net.alpha.kubernetes.io 里的 network-isolation 注释来开通关闭
+
+   一旦开通了网络隔离，一定需要使用 显示的网络策略来允许 pod 间的通信
+** RuntimeClass
+   introduced in 1.12
+   
+* Integration
+** Airflow
+   Apache Airflow是DevOps“Configuration As Code”理念的一种实现。
+   Airflow允许用户使用简单的Python对象DAG（有向无环图）启动多步骤流水
+   线。
+** Kubernetes on AWS
+   
+* Guide for lengency apps
+** Principles of Container-based Application Design
+   现如今，几乎所有的的应用程序都可以在容器中运行。但创建云原生应用，
+   通过诸如 Kubernetes 的云原生平台更有效地自动化运行、管理容器化的应
+   用却需要额外的工作。 云原生应用需要考虑故障；即使是在底层架构发生故
+   障时也需要可靠地运行。 为了提供这样的功能，像 Kubernetes 这样的云原
+   生平台需要向运行的应用程序强加一些契约和约束。 这些契约确保应用可以
+   在符合某些约束的条件下运行，从而使得平台可以自动化应用管理。
+
+   这里所述的七项原则涉及到构建时和运行时，两类关注点。
+   - 构建时
+     * 单一关注点： 每个容器只解决一个关注点，并且完成的很好。
+     * 自包含： 一个容器只依赖Linux内核。额外的库要求可以在构建容器时加入。
+     * 镜像不变性： 容器化的应用意味着不变性，一旦构建完成，不需要根据环境的不同而重新构建。
+   - 运行时
+     - 高可观测性： 每个容器必须实现所有必要的 API 来帮助平台以最好的方式来观测、管理应用。
+     - 生命周期一致性： 一个容器必须要能从平台中获取事件信息，并作出相应的反应。
+     - 进程易处理性： 容器化应用的寿命一定要尽可能的短暂，这样，可以随时被另一个容器所替换。
+     - 运行时限制： 每个容器都必须要声明自己的资源需求，并将资源使用限制在所需要的范围之内。
+
+

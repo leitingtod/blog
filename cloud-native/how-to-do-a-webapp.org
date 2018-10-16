@@ -1,0 +1,68 @@
+* 客户端
+* 服务端
+** API接口
+*** API specification
+    - OpenAPI Specification (swagger) 
+
+      OpenAPI Specification (formerly Swagger Specification) is an API
+      description format for REST APIs.
+
+      The OpenAPI Specification was donated to the Linux Foundation
+      under the OpenAPI Initiative in 2015.
+      
+      Swagger is a set of open-source tools built around the OpenAPI
+      Specification that can help you design, build, document and
+      consume REST APIs. The major Swagger tools include:
+      - swagger editor
+      - swagger ui
+      - swagger codegen
+    - RAML
+      
+      MuleSoft, the creators of RAML, announced that they have joined
+      the Open API Initiative.
+
+    - API blueprint - https://apiblueprint.org/
+
+     
+** RPC
+** 语言
+** 框架
+** 架构
+** 服务发现
+   Ref:
+   - https://blog.csdn.net/qq_34764487/article/details/78379565
+   - https://blog.csdn.net/clz1314521/article/details/51176208
+   - https://blog.csdn.net/zl1zl2zl3/article/details/79627412
+
+     
+   - zookeeper
+     
+     Zookeeper是hadoop的一个子项目，虽然源自hadoop，但是我发现
+
+     开发分布式系统是件很困难的事情，其中的困难主要体现在分布式系统的
+     “部分失败”。“部分失败”是指信息在网络的两个节点之间传送时候，
+     如果网络出了故障，发送者无法知道接收者是否收到了这个信息，而且这
+     种故障的原因很复杂，接收者可能在出现网络错误之前已经收到了信息，
+     也可能没有收到，又或接收者的进程死掉了。发送者能够获得真实情况的
+     唯一办法就是重新连接到接收者，询问接收者错误的原因，这就是分布式
+     系统开发里的“部分失败”问题。
+
+     Zookeeper就是解决分布式系统“部分失败”的框架。Zookeeper不是让分
+     布式系统避免“部分失败”问题，而是让分布式系统当碰到部分失败时候，
+     可以正确的处理此类的问题，让分布式系统能正常的运行。
+
+   - etcd
+   - consul
+     
+   它们的目的是什么，为何都选择了paxos类的分布式算法？
+** 数据库
+*** 同步
+    Ref: 
+    - https://github.com/alibaba/canal
+      
+
+    早期，阿里巴巴B2B公司因为存在杭州和美国双机房部署，存在跨机房同步
+    的业务需求。不过早期的数据库同步业务，主要是基于trigger的方式获取
+    增量变更，不过从2010年开始，阿里系公司开始逐步的尝试基于数据库的日
+    志解析，获取增量变更进行同步，由此衍生出了增量订阅&消费的业务，从
+    此开启了一段新纪元。
