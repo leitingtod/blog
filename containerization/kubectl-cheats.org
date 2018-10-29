@@ -1,0 +1,3 @@
+* cheats
+  1. kl get nodes -o json | jq '.items[] | .status .addresses[] | select(.type=="InternalIP") | .address' ::  获取所有node的内网IP
+
