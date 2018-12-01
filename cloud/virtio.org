@@ -1,0 +1,217 @@
+* virtio
+  virtio 是一种 I/O 半虚拟化解决方案，是一套通用 I/O 设备虚拟化的程序，
+  是对半虚拟化 Hypervisor 中的一组通用 I/O 设备的抽象。
+
+  virtio 提供了一套上层应用与各 Hypervisor 虚拟化设备（KVM，Xen，VMware等）之
+  间的通信框架和编程接口，减少跨平台所带来的兼容性问题，大大提高驱动程
+  序开发效率。
+
+  virtio 并没有提供多种设备模拟机制（针对网络、块和其他驱动程序），而
+  是为这些设备模拟提供一个通用的前端，从而标准化接口和增加代码的跨平台
+  重用。
+
+  virtio 背后的秘密就是利用半虚拟化来改善总体 I/O 性能。
+  
+** 完全虚拟化与半虚拟化(或超虚拟化)
+    在完全虚拟化：
+    - 来宾操作系统运行在位于物理机器上的 hypervisor 之上。来宾操作系统
+      并不知道它已被虚拟化，并且不需要任何更改就可以在该配置 下工作。
+    - hypervisor 必须模拟设备硬件，它是在会话的最低级别进行模拟的（例如，
+      网络驱动程序）。尽管在该抽象中模拟很干净，但它同时也是最低效、最
+      复杂的。
+
+   在半虚拟化(或超虚拟化)中：
+   - 来宾操作系统不仅知道它运行在 hypervisor 之上， 还包含让来宾操作系
+     统更高效地过渡到 hypervisor 的代码。
+   - 来宾操作系统和 hypervisor 能够共同合作，让模拟更加高效。半虚拟化方
+     法的缺点是操作系统知道它被虚拟化，并且需要修改才能工作。
+
+   硬件随着虚拟化技术而不断改变。新的处理器通过纳入高级指令来让来宾操作
+   系统到 hypervisor 的过渡更加高效。此外，硬件也随着输入/输出（I/O）虚
+   拟化而不断改变（参见 参考资料 了解 Peripheral Controller
+   Interconnect [PCI] passthrough 和 single- and multi-root I/O 虚拟化）。
+
+   在传统的完全虚拟化环境中，hypervisor 必须捕捉这些请求，然后模拟物理
+   硬件的行为。尽管这样做提供很大的灵活性（即运行未更改的操作系统），但
+   它的效率比较低（参见 图 1 左边）。图 1 的右边是半虚拟化示例。在这里，
+   来宾操作系统知道它运行在 hypervisor 之上，并包含了充当前端的驱动程序。
+   Hypervisor 为特定的设备模拟实现后端驱动程序。通过在这些前端和后端驱
+   动程序中的 virtio，为开发模拟设备提供标准化接口，从而增加代码的跨平
+   台重用率并提高效率。
+
+   注意，在现实中（尽管不需要），设备模拟发生在使用 QEMU 的空间，因此后
+   端驱动程序与 hypervisor 的用户空间交互，以通过 QEMU 为 I/O 提供便利。
+   QEMU 是一个系统模拟器，它不仅提供来宾操作系统虚拟化平台，还提供整个
+   系统（PCI 主机控制器、磁盘、网络、视频硬件、USB 控制器和其他硬件元素）
+   的模拟。
+
+** 为什么是 virtio
+   在完全虚拟化的解决方案中，guest VM 要使用底层 host 资源，需要
+   Hypervisor 来截获所有的请求指令，然后模拟出这些指令的行为，这样势必
+   会带来很多性能上的开销。半虚拟化通过底层硬件辅助的方式，将部分没必
+   要虚拟化的指令通过硬件来完成，Hypervisor 只负责完成部分指令的虚拟化，
+   要做到这点，需要 guest 来配合，guest 完成不同设备的前端驱动程序，
+   Hypervisor 配合 guest 完成相应的后端驱动程序，这样两者之间通过某种
+   交互机制就可以实现高效的虚拟化过程。
+
+   由于不同 guest 前端设备其工作逻辑大同小异（如块设备、网络设备、PCI
+   设备、balloon驱动等），单独为每个设备定义一套接口实属没有必要，而且
+   还要考虑扩平台的兼容性问题，另外，不同后端 Hypervisor 的实现方式也
+   大同小异（如KVM、Xen等），这个时候，就需要一套通用框架和标准接口
+   （协议）来完成两者之间的交互过程，virtio 就是这样一套标准，它极大地
+   解决了这些不通用的问题。
+
+* virtio 架构 
+  从总体上看，virtio 可以分为四层，包括前端 guest 中各种驱动程序模块，
+  后端 Hypervisor （实现在Qemu上）上的处理程序模块，中间用于前后端通信
+  的 virtio 层和 virtio-ring 层，virtio 这一层实现的是虚拟队列接口，算
+  是前后端通信的桥梁，而 virtio-ring 则是该桥梁的具体实现，它实现了两
+  个环形缓冲区，分别用于保存前端驱动程序和后端处理程序执行的信息。
+
+  | virtio_blk/net/pci/balloon/scsi/console |
+  | virtio                                  |
+  | transport(virtio-ring                   |
+  | virtiio-backend                         |
+
+  严格来说，virtio 和 virtio-ring 可以看做是一层，virtio-ring 实现了
+  virtio 的具体通信机制和数据流程。或者这么理解可能更好，virtio 层属于
+  控制层，负责前后端之间的通知机制（kick，notify）和控制流程，而
+  virtio-vring 则负责具体数据流转发。
+
+  
+  Virtio 使用 virtqueue 来实现 I/O 机制，每个 virtqueue 就是一个承载大
+  量数据的队列，具体使用多少个队列取决于需求，例如，virtio 网络驱动程
+  序（virtio-net）使用两个队列（一个用于接受，另一个用于发送），而
+  virtio 块驱动程序（virtio-blk）仅使用一个队列。
+
+  当 guest 向 virtqueue 中写数据时，实际上是向 desc 结构指向的 buffer
+  中填充数据，完了会更新 available ring，然后再通知 host。
+
+  当 host 收到接收数据的通知时，首先从 desc 指向的 buffer 中找到
+  available ring 中添加的 buffer，映射内存，同时更新 used ring，并通知
+  guest 接收数据完毕。
+
+** 概念层次结构
+   virtio_driver -> virtio_device -> vritqueue -> virtqueue_ops
+                                 I
+	        virtio_config_ops
+
+   该层次结构的核心是 virtqueue_ops，它定义在来宾操作系统和 hypervisor
+   之间移动命令和数据的方式。
+
+** virtio 缓冲池
+   来宾操作系统（前端）驱动程序通过缓冲池与 hypervisor 交互。对于 I/O，
+   来宾操作系统提供一个或多个表示请求的缓冲池。例如，您可以提供 3 个缓
+   冲池，第一个表示 Read 请求，后面两个表示响应数据。该配置在内部被表
+   示为一个散集列表（scatter-gather），列表中的每个条目表示一个地址和
+   一个长度。
+
+** 核心 API
+   通过 virtio_device 和 virtqueue（更常见）将来宾操作系统驱动程序与
+   hypervisor 的驱动程序链接起来。virtqueue 支持它自己的由 5 个函数组
+   成的 API。
+
+   您可以使用第一个函数 add_buf 来向 hypervisor 提供请求。
+
+   通过 get_buf 函数触发来自 hypervisor 的响应。来宾操作系统仅需调用该
+   函数或通过提供的 virtqueue callback 函数等待通知就可以实现轮询。当
+   来宾操作系统知道缓冲区可用时，调用 get_buf 返回完成的缓冲区。
+
+   virtqueue API 的最后两个函数是 enable_cb 和 disable_cb。您可以使用
+   这两个函数来启用或禁用回调进程（通过在 virtqueue 中由 virtqueue 初
+   始化的 callback 函数）。注意，该回调函数和 hypervisor 位于独立的地
+   址空间中，因此调用通过一个间接的 hypervisor 来触发（比如
+   kvm_hypercall）。
+
+** 示例 virtio 驱动程序
+   您可以在 Linux 内核的 ./drivers 子目录内找到各种前端驱动程序的源代
+   码。可以在 ./drivers/net/virtio_net.c 中找到 virtio 网络驱动程序，
+   在 ./drivers/block/virtio_blk.c 中找到 virtio 块驱动程序。子目录
+   ./drivers/virtio 提供 virtio 接口的实现（virtio 设备、驱动程序、
+   virtqueue 和连接点）。virtio 还应用在 High-Performance Computing
+   (HPC) 研究中，以开发出通过共享内存传递的 inter-virtual machine (VM)
+   通信。尤其是，这是通过使用 virtio PCI 驱动程序的虚拟化 PCI 接口实现
+   的。您可以在 参考资料 部分更多地了解这个知识点。
+
+* virtio 基本概念
+  virtio 提供了一套有效，易维护、易开发、易扩展的中间层 API。virtio 使
+  用 Feature Bits 来进行功能扩展，使用 vring buffer 传输数据。使用
+  virtio 的设备在配置上于其他 PCI 设备没有太多不同，只不过它只应用于虚
+  拟化环境。
+
+  Virtio 设备具备以下特点：
+  1. 简单易开发: virtio PCI 设备使用通用的 PCI 的中断和 DMA 机制，对于
+     设备驱动开发者来说不会带来困难。
+  2. 高效: virtio PCI 设备使用针对输入和输出使用不同的 vring，规避了可
+     能的由高速缓存带来的影响。
+  3. 标准: virtio PCI 不假定其所处的环境一定需要对 PCI 的支持，实际上
+     当前很多 virtio 设备已经在非 PCI 总线上实现了，这些设备根本不需要
+     PCI。
+  4. 可扩展: virtio PCI 设备包含一组 Feature Bits,在设备安装过程中，可
+     以告知 guest OS。设备和驱动之间相互协调，驱动可以根据设备提供的特
+     性以及驱动自身能够支持的特性来最终确定在 guest OS 里面能够使用的
+     设备特性。这样可以顾及到设备的前后兼容性。
+
+  因此，对与 guest OS 来说，只需要添加一个 PCI 设备驱动，然后
+  Hypervisor 添加设备的 vring 支持即可以添加一个 virtio 设备。
+** 设备的类型
+   |  1 | Network card      |
+   |  2 | Block device      |
+   |  3 | Console           |
+   |  4 | Entropy source    |
+   |  5 | Memory ballooning |
+   |  6 | IoMemory          |
+   |  7 | Rpmsg             |
+   |  8 | SCSI host         |
+   |  9 | 9P transport      |
+   | 10 | Mac80211 wlan     |
+** 设备的配置空间
+   | Bits(高->低) | R/W | Purpose              |
+   |           32 | R   | Device  Features     |
+   |           32 | RW  | Guest Features       |
+   |           32 | RW  | Queue Address        |
+   |           16 | R   | Queue Size           |
+   |           16 | RW  | Queue Select         |
+   |           16 | RW  | Queue Notify         |
+   |            8 | RW  | Device Status        |
+   |            8 | R   | ISR Status           |
+
+   如果设备开启了 MSI-X(Message Signalled Interrupt-Extended)，则在上
+   述 bits 后添加了两个域：
+   |           16 | RW  | Configuration Vector |
+   |           16 | RW  | Queue Vector         |
+** 设备状态
+   Device Status 域主要由 guest 来更新，表示当前 drive 的状态。状态包
+   括：
+   1. 写入 0 表示重启该设备
+   2. Acknowledge，表明 guest 已经发现了一个有效的 virtio 设备
+   3. Driver，表明 guest 已经可以驱动该设备，guest 已经成功注册了设备
+      驱动
+   4. Driver_OK，表示 guest 已经正确安装了驱动，准备驱动设备
+   5. FAILED，在安装驱动过程中出错
+   每次试图重新初始化设备前，需要设置 Device Status 为 0。
+
+** Virtqueue
+   每个设备拥有多个 virtqueue 用于大块数据的传输。virtqueue 是一个简单
+   的队列，guest 把 buffers 插入其中，每个 buffer 都是一个分散-聚集数
+   组。
+
+** Vring
+   virtio_ring 是 virtio 传输机制的实现，vring 引入 ring buffers 来作
+   为我们数据传输的载体。
+
+** 设备操作
+   1. 重启设备状态，状态位写入 0
+   2. 设置状态为 ACKNOWLEDGE，guest(driver)端当前已经识别到了设备
+   3. 设置状态为 Driver，guest 知道如何驱动当前设备
+   4. 设备特定的安装和配置：特征位的协商，virtqueue 的安装，可选的 MSI-X 的安装，读写设备专属的配置空间等
+   5. 设置状态为 Driver_OK 或者 Failed（如果中途出现错误）
+   6. 当前设备初始化完毕，可以进行配置和使用
+
+* 参考
+  - https://www.ibm.com/developerworks/cn/linux/l-virtio/index.html
+  - https://www.ibm.com/developerworks/cn/linux/l-virtio/index.html#artrelatedtopics
+  - https://www.cnblogs.com/bakari/p/8309638.html
+  - http://blog.loftninjas.org/2008/10/22/kvm-virtio-network-performance/
+  - https://blog.csdn.net/qq_27977257/article/details/54574173
+

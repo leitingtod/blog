@@ -1,0 +1,6 @@
+* JD
+  1. 熟悉 openstack nova, open nebula, cloud stack, ovirt, k8s
+  2. 熟悉 python, js, java, ruby, go, ocaml, c/c++
+  3. 熟悉计算机体系、虚拟化技术及云计算体系
+  4. 熟悉敏捷项目管理及CI/CD流程
+  5. 良好的编程习惯及合作交流意识

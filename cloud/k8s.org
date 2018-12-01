@@ -1,0 +1,36 @@
+* overview
+** components
+** objects
+*** selector
+**** eqality-based
+     Three kinds of operators are admitted =,==,!=. 
+     
+     environment = production
+     tier != frontend
+
+    selector:
+      environment: production
+      
+**** set-based
+     Three kinds of operators are supported: in,notin and exists.
+
+     selector:
+     matchLabels:
+       component: redis
+     matchExpressions:
+       - {key: tier, operator: In, values: [cache]}
+       - {key: environment, operator: NotIn, values: [dev]}
+
+* architecture
+* containers
+* workloads
+** controller
+*** statefulsets
+* services, LB, networking
+** headless services
+* storage
+* configuration
+* policies
+* cluster administration
+* extending kubernetes
+

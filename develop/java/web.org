@@ -1,0 +1,126 @@
+* Security
+** Session
+   最传统的用户认证方式。用户首次访问应用服务器后建立会话，服务器可以
+   使用 Set-Cookie 这个 HTTP Header，将会话的 SessionID 写入在用户端保
+   存的 Cookie 中（具体的名字可以自行设置，系统中统一即可）。下次用户
+   再次向这个域名发请求时会携带所有 Cookie 信息，包括这个 SessionID。
+   
+   Session 信息保存在服务器端，而用于唯一标识这个 Session 的 SessionID
+   则保存在对应客户端的 Cookie 中。SessionID 这个会话标识符本质上是一
+   个随机字符串，每个用户的 SessionID 都不一样。
+
+   每次通过域名或 IP 地址访问时，浏览器都会检查是否有可用的 Cookie，如
+   果有，则放到请求的 HTTP Header 中一同发送到服务器。
+
+   登录成功之后，登录请求对应的响应会再次设置 Cookie 字段，重新设置
+   Cookie 字段的有效期。
+
+   登录后的访问跟正常访问没有区别，只是携带的 Cookie 中有 SessionID，
+   且服务器端对应的 Session 中需要（比如 IsLogin=true，自己设置）标识
+   已登录状态
+
+   Session 的主要问题有：
+   1. 服务器压力大：每个用户在认证后，Session 信息都会保存在服务器的内
+      存中，开销大。
+   2. 难以扩展：对于基于 Session 的分布式系统，要实现负载均衡，有两个
+      办法：确保同一用户始终访问同一个服务器，或在多台服务器之间同步
+      Session。对于前者，Nginx 也可以用 ip_hash 把同一来源的 IP（同一
+      C 段）指向后端的同一台机器。对于后者则需要通过 Session Sticky 机
+      制在多台服务器之间同步 Session（例如 Nginx 的扩展模块
+      nginx-sticky-module。假设 Session 存储在 A 服务器上，而用户访问
+      了 B 服务器，则可以将 Session 从 A 同步到 B，但是如果存储
+      Session 的 A 服务器挂掉，还是会导致用户掉线）。
+   3. 还有，就是目前大前端的发展，除了浏览器外，各种 APP、小程序层出不
+      穷，而非浏览器下环境下避免使用 Cookie 可能会更简单。
+
+   Ref:
+   - https://blog.csdn.net/kikajack/article/details/80293328 
+
+** Token
+  使用基于 Token 的身份验证方法，在服务端不需要存储用户的登录记录。大
+  概的流程是这样的：
+  1. 客户端使用用户名跟密码请求登录
+  2. 服务端收到请求，去验证用户名与密码
+  3. 验证成功后，服务端会签发一个 Token，再把这个 Token 发送给客户端
+  4. 客户端收到 Token 以后可以把它存储起来，比如放在 Cookie 里或者
+     Local Storage 里
+  4. 客户端每次向服务端请求资源的时候需要带着服务端签发的 Token
+  6. 服务端收到请求，然后去验证客户端请求里面带着的 Token，如果验证成
+     功，就向客户端返回请求的数据
+
+  Ref:
+  - https://www.cnblogs.com/lonelydreamer/p/6169469.html
+  - https://www.cnblogs.com/wxinyu/p/9154178.html
+  - https://blog.csdn.net/qq_32784541/article/details/79655146
+
+** JSON Web Token
+   Json Web Token是怎么做的？
+   1. 客户端通过用户名和密码登录服务器；
+   2. 服务端对客户端身份进行验证；
+   3. 服务端对该用户生成Token，返回给客户端；
+   4. 客户端将Token保存到本地浏览器，一般保存到cookie中；
+   5. 客户端发起请求，需要携带该Token；
+   6. 服务端收到请求后，首先验证Token，之后返回数据。
+
+   服务端不需要保存Token，只需要对Token中携带的信息进行验证即可；无论
+   客户端访问后台的那台服务器，只要可以通过用户信息的验证即可。
+
+   Ref:
+   - https://blog.csdn.net/wandoubi/article/details/79418107
+   - https://blog.csdn.net/qingmengwuhen1/article/details/80761445
+   - https://blog.csdn.net/HeliumLau/article/details/70056764
+   - https://blog.csdn.net/change_on/article/details/71191894
+
+** Single sign-on
+   公司发展过程中，产品线会慢慢增多，比如百度的贴吧、网盘、浏览器等。
+   这时，需要一套单点登录机制 SSO（Single sign-on），用户只要一次登录，
+   就可以使用这一系列产品。SSO 描述了认证的问题。
+
+   SSO 需要一个独立的认证中心 CAS（Central Authentication Service，中
+   央认证服务），只有认证中心能提供登录入口，接受用户的用户名密码等凭
+   证，其他系统无登录入口，只接受认证中心的间接授权。
+
+   单体项目拆分成微服务后，可以更加灵活。通常所有的服务都在网关之后，
+   所有请求都发送到网关，由网关统一转发。微服务的网关通常实现了 OAuth，
+   成为认证授权中心，用于判断是否有足够权限。微服务之间可以通过 JWT 进
+   行访问鉴权，避免身份认证。
+
+   成为开放平台
+   
+   随着公司用户增多（假设跟微信一样，有几亿用户），合作企业也越来越多。
+   如果每次都要在后台通过人工给合作伙伴配置账号密码，分配权限管理，那
+   太麻烦了。同时，一些企业有自己的平台，想要利用我的用户账号体系实现
+   在这些平台上的登录（授权登录）。对于用户的图片，一些图片打印公司也
+   想在经过用户同意后，直接访问到我服务器上的用户图片，优化体验。
+
+   总之，就是只要用户同意，他可以分享自己的所有资源（账号、图片等）。
+   这时，就需要 OAuth2 了。这是一个授权框架，描述了各种授权的问题。
+
+   Ref:
+   - https://blog.csdn.net/kikajack/article/details/80293328
+
+** OAuth2
+* 无状态与有状态
+  整个架构分成两个部分，无状态部分和有状态部分，而业务逻辑的部分往往作
+  为无状态的部分，而将状态保存在有状态的中间件中，如缓存、数据库、对象
+  存储、大数据平台、消息队列等。
+
+  这样无状态的部分可以很容易的横向扩展，在用户分发的时候，可以很容易分
+  发到新的进程进行处理，而状态保存到后端。而后端的中间件是有状态的，这
+  些中间件设计之初，就考虑了扩容的时候，状态的迁移，复制，同步等机制，
+  不用业务层关心。
+
+  Ref:
+  - http://dockone.io/article/3682
+
+* 分布式系统
+** 分布式系统互斥性与幂等性问题的分析与解决  
+   Ref:
+   - https://blog.csdn.net/moonpure/article/details/52766015
+   - https://blog.csdn.net/xichenguan/article/details/78085801
+** 分布式事务
+   Ref:
+   - https://blog.csdn.net/l1028386804/article/details/73731363
+** 一致性hash算法
+   
+

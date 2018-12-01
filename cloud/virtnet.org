@@ -1,0 +1,141 @@
+* OVS
+  为什么还有很多厂商都在做自己的虚拟交换机，比如比较流行的有 VMware
+  virtual switch、Cisco Nexus 1000V，以及 Open vSwitch。究其原因，主要
+  有以下几点（我们重点关注 OVS）：
+
+  1. 方便网络管理与监控。
+
+     OVS 的引入，可以方便管理员对整套云环境中的网络状态和数据流量进行
+     监控，比如可以分析网络中流淌的数据包是来自哪个 VM、哪个 OS 及哪个
+     用户，这些都可以借助 OVS 提供的工具来达到。
+
+  2. 加速数据包的寻路与转发。
+
+     相比 Bridge 单纯的基于 MAC 地址学习的转发规则，OVS 引入流缓存的机
+     制，可以加快数据包的转发效率。
+
+  3. 基于 SDN 控制面与数据面分离的思想。
+     
+     上面两点其实都跟这一点有关，OVS 控制面负责流表的学习与下发，具体
+     的转发动作则有数据面来完成。可扩展性强。
+
+  4. 隧道协议支持。
+
+     Bridge 只支持 VxLAN，OVS 支持 gre/vxlan/IPsec 等。
+
+  5. 适用于 Xen、KVM、VirtualBox、VMware 等多种 Hypervisors。
+
+  Openvswitch是一个优秀的开源软件交换机，支持主流的交换机功能，比如二
+  层交换、网络隔离、QoS、流量监控等，而其最大的特点就是支持openflow，
+  openflow定义了灵活的数据包处理规范。其所支持的所有协议如
+  STP/LACP/BOND等最后都是落脚到流表。 同时OvS 提供ofproto dpif 编程接
+  口，支持硬件交换机（后面有介绍）。
+
+  OVS由这三大部分构成：
+  1. ovsdb-sever: 
+
+     OVS的数据库服务器，用来存储虚拟交 换机的配置信息。它与manager和
+     ovs-vswitchd交换信息使用了OVSDB(JSON-RPC)的方式。
+
+  2. ovs-vswitchd: 
+
+     OVS的核心部件，它和上层controller通信遵从openflow协议，它与
+     ovsdb-server通信使用OVSDB协议，它和内核模块通过netlink通信，它支
+     持多个独立的datapath（网桥），它通过更改flow table实现了绑定，和
+     VLAN等功能。
+
+  3. ovs kernel module: 
+      
+     OVS的内核模块，处理包交换和隧道，缓存flow，如果在内核的缓存中找到
+     转发规则则转发，否则发向用户空间去处理。
+
+  主要包括以下模块和特性：
+  1. ovs-vswitchd： 主要模块，实现switch的daemon，包括一个支持流交换的
+     Linux内核模块；
+  2. ovsdb-server： 轻量级数据库服务器，提供ovs-vswitchd获取配置信息，
+     例如vlan、port等信息；
+  3. ovs-brcompatd： 让ovs-vswitch替换linux bridge，包括获取bridge
+     ioctls的Linux内核模块；
+  4. ovs-dpctl：用来配置switch内核模块；
+  4. ovs-vsctl： 查询和更新ovs-vswitchd的配置；
+  5. ovs-appctl： 发送命令消息，运行相关daemon；
+  6. ovs-ofctl： 查询和控制OpenFlow交换机和控制器；
+  8. ovs-openflowd：一个简单的OpenFlow交换机；
+  9. ovs-controller：一个简单的OpenFlow控制器；
+  10. ovs-pki：OpenFlow交换机创建和管理公钥框架；
+  11. ovs-tcpundump：tcpdump的补丁，解析OpenFlow的消息；
+  12. ovs-bugtool：管理openvswitch的bug信息
+
+** 工作流程
+   一般的数据包在linux网络协议栈中的流向为黑色箭头流向：从网卡上接受到
+   数据包后层层往上分析，最后离开内核态，把数据传送到用户态。当然也有
+   些数据包只是在内核网络协议栈中操作，然后再从某个网卡发出去。
+
+
+   但当其中有openVswitch时，数据包的流向就不一样了：首先是创建一个网桥：
+   ovs-vsctl add-br br0；然后是绑定某个网卡：ovs-vsctl add-port br0
+   eth0；这里默认为绑定了eth0网卡。
+
+   数据包的流向是从网卡eth0上然后到openVswitch的端口vport上进入
+   openVswitch中，然后根据key值进行流表的匹配。如果匹配成功，则根据流
+   表中对应的action找到其对应的操作方法，完成相应的动作（这个动作有可
+   能是把一个请求变成应答，也有可能是直接丢弃，也可以自己设计自己的
+   action）；如果匹配不成功，则执行默认的动作，有可能是放回内核网络协
+   议栈中去处理（在创建网桥时就会相应的创建一个端口连接内核协议栈的）。
+
+** OvS datapath以及查找算法
+   OvS 支持内核datapath以及dpdk datapath。在两种datapath模式中，内核模
+   块和ovs-vswithd是主要的处理程序。同时两种datapath 前两级的查表实现
+   不同，但是第三级都使用相同的ofproto 查询（这里我们只做简单介绍）。
+
+   一直以来，流Cache是提高查表性能的有效手段，已经被广泛应用于报文查表
+   加速。它将数据平面的转发路径分为快速路径（即流Cache）和慢速路径，利
+   用流量局部特性，使得大部分报文命中快速路径中的表项，从而提高转发性
+   能。OVS也采用了流Cache设计思路。
+
+   OvS-DPDK has three-tier look-up tables/caches. Incoming packets are
+   first matched against Exact Match Cache (EMC) and in case of a miss
+   are sent to the dpcls (megaflow cache). The dpcls is implemented as
+   a tuple space search (TSS) that supports arbitrary bitwise matching
+   on packet header fields. Packets that miss the dpcls are sent to
+   the OpenFlow* pipeline, also known as ofproto classifier,
+   configured by an SDN controller as depicted in Figure 1.
+** 术语与逻辑概念
+   
+   Bridge：即网桥，在Openvswitch中每个虚拟交换机（vswitch）都可以认为是
+   一个网桥，因为Openvswitch在底层的通信是借助了网桥模块来实现的，同时
+   我们通过brctl也能查看到ovs所创建的网桥设备。
+
+   Datapath：即数据通路，在Openvswitch中每个Bridge我们都可以理解为
+   Datapath，也就是说Datapath就是虚拟交换机。
+
+   每个Datapath项中我们都能看到存在几个Port项，它们其实就是虚拟交换机
+   （datapath）上的端口。如上br-tun项中，port2就与远端的端口建立了gre隧
+   道。
+
+   Flowtable：即数据流表，根据之前对OpenFlow的介绍，我们已经了解了
+   Openvswitch中利用openflow协议在实现虚拟交换机，而数据流表就是提供给
+   Bridge/Datapath做数据操作的指令。
+
+   Port：即端口，这里的端口是指虚拟交换机逻辑上的接口，我们可以通过
+   ovs-vsctl命令查看各个网桥（即虚拟交换机）上的接入的端口。
+
+   Patch：即连线，我们可以理解为传统交换机的Trunk，在这里就是网络节点和运算节点间ovs虚拟交换的联结。
+
+   Tun/Tap：它们是Linux/Unix系统中的虚拟网络设备，TAP等同于以太网设备，
+   操作L2层数据链路层的数据帧；TUN则是模拟L3网络层的设备，操作网络层的
+   IP数据包。
+
+   在OVS中，其GRE隧道模式在底层的实现是由TUN支持的，而TAP设备则是用来分
+   隔openvswitch中不同的subnet。
+
+   Vnet：即虚拟机的虚拟网卡，在运算节点上可以看到OVS对于vnet的管理和传
+   统的网桥模式不同，根据对设备物理地址的判断，应该是OVS采用了相应的
+   tunneling技术。
+
+** 参考
+   - https://www.cnblogs.com/bakari/p/8097439.html
+   - https://www.2cto.com/net/201707/655718.html
+   - https://www.sdnlab.com/19448.html
+   - https://software.intel.com/en-us/articles/ovs-dpdk-datapath-classifier
+

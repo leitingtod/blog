@@ -1,0 +1,24 @@
+
+* CPU
+* 内存
+* 网络
+* PCI 中断
+* DMA 机制
+* DPDK(Data plane development kit)
+  DPDK全称为Date planedevelopment kit，是由INTEL开源一个用来进行包数据
+  处理加速的软件库。用户可以通过代码来理解其中使用的一些技术，并 用来
+  构建自己的应用原型或是添加自己的协议栈。 用户也可以替换DPDK提供 的原
+  生的选项。
+
+  与传统的数据包处理相比，DPDK具有以下特点：
+  1. 轮询：在包处理时避免中断上下文切换的开销
+  2. 用户态驱动：规避不必要的内存拷贝和系统调用，便于快速迭代优化
+  3. 亲和性与独占：特定任务可以被指定只在某个核上工作，避免线程在不同
+     核间频繁切换，保证更多的cache命中
+  4. 降低访存开销：利用内存大页HUGEPAGE降低TLB miss，利用内存多通道交
+     错访问提高内存访问有效带宽
+  5. 软件调优：cache行对齐，预取数据，多元数据批量操作
+
+* 引用
+  - DPDK: https://blog.csdn.net/zgy666/article/details/79015794
+  - https://www.cnblogs.com/bakari/p/8167686.html

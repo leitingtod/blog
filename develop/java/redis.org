@@ -1,0 +1,8 @@
+* Redis
+* Redis高可用
+** Redis Sentinel
+
+* 参考
+  - http://www.cnblogs.com/wxd0108/p/5729754.html
+  - https://blog.csdn.net/u010963948/article/details/78963572
+  - https://www.cnblogs.com/cjsblog/p/9048545.html

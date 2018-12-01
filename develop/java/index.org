@@ -1,0 +1,77 @@
+* Contents
+** Java
+*** Basic
+*** 集合框架
+*** 多线程/并发
+    * 分库如何实现id自增
+    * mybatis
+    * RPC框架
+
+*** IO/NIO/AIO
+**** APR(Apache Portable Routine)
+**** NIO的原理
+     1. 注册事件（绑定 ip + port）
+     2. 监听请求事件（常驻一个线程调用select系统调用，扫描是否有客户端请求）
+     3. 注册事件（建立连接<连接状态：成功、超时、断开……>）
+     4. 监听连接成功事件
+     5. 注册接收数据事件
+     6. 监听数据可读事件
+     7. 响应客户请求
+
+**** Netty的QuickStart
+**** Netty实现对象传输、心跳检测、多控制器
+*** 网络通信
+** Spring IoC 与设计模式
+*** 单例模式/原型模式
+*** 工厂模式
+*** AOP原理与装饰器模式
+*** 其他常用模式
+
+** Web MVC 开发
+*** Http 与 Servlet
+*** Sevlet 编程模型
+*** MVC
+*** Filter&Listener
+*** Security
+**** Session
+*** 无状态设计
+*** Spring MVC
+*** Spring Boot
+*** API 设计
+*** 序列化/JSON
+
+** 响应式Web开发
+*** Ractive 编程原理
+*** Spring WebFlux
+
+** 数据库设计与开发
+*** Spring JDBC + MySQL
+*** Spring 声明式事务原理及应用
+*** ORM原理及Hibernate
+*** Spring Data JPA
+*** Mybatis
+*** 分库分表
+*** MySQL 主从复制/Spring 多数据源切换
+*** MySQL 分页/调优
+*** 分布式事务与补偿设计
+*** NoSQL 数据库 Redis
+*** NoSQL 数据库 MongoDB
+
+** 分布式架构
+*** 服务治理
+*** 配置中心
+*** 网关设计
+*** 服务调用
+*** 缓存设计
+*** 异步驱动设计
+*** 消息服务
+*** 消息幂等性设计
+*** 流量控制
+*** 边缘计算模式
+*** 日志监控
+
+** RPC
+** Dubbo
+** 性能
+   - http://www.cnblogs.com/mindwind/p/5787961.html
+   - http://calvin1978.blogcn.com/articles/safepoint.html

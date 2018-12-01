@@ -1,0 +1,48 @@
+* Nova
+  Nova负责管理和维护计算资源，以及虚拟机的生命周期。
+
+  Nova是无共享、基于消息的架构，可以以多台服务器上运行。
+  
+  在G版以前，Nova的所有组件都会与数据库通信，因此每个节点都有数据库访
+  问权限，带来安全隐患。G版以后，所有的数据库操作均通过nova-conductor
+  来读写数据库，避免了直接访问数据库，提高了安全性，也更加灵活。
+
+  Nova的主要组件有：
+  1. nova-api
+  2. nova-api-metadata
+  3. nova-compute
+  4. nova-placement-api
+  5. nova-scheduler
+  6. nova-conductor
+  7. nova-cert
+  8. nova-consoleauth
+  9. nova-xvpvncproxy
+  10. Message Queue
+  11. SQL Database
+
+  为了增加横向扩展以及分布式、大规模的部署能力，同时又不增加数据库和消
+  息中间件的复杂度，引入了Cell概念。
+
+  当启用Cell功能时，计算节点会被分组，称作Cell。Cell的结构是树的形式，
+  最顶层的Cell中的节点运行一个nova-api服务，但可以没有nove-compute服务。
+  每一个子Cell运行常规的所有nova-compute类服务，而且都自己的数据库和消
+  息队列服务。
+
+  cell的特征：
+  
+  1. 目的是支持更大规模的部署；
+  2. cell的结构是树的形式；
+  3. top-level级别的cell（API cell）中的主机运行nova-api服务，可以没有
+     nova-compute服务，不感知底层物理主机以及虚拟化；
+  4. 子cell无nova-api服务；
+  5. 每一个子cell应该运行常规OpenStack云计算中所有nova-*类型的服务，除
+     了nova-api服务；
+  6. 树中的每个cell中都有自己的数据库服务和消息队列服务；
+  7. 从设计上来讲cell之间的通信是可插拔的，也就是未来会支持多种消息通
+     信框架，目前cell之间的通信只是通过RPC服务来实现的；
+  8. 采用cell服务实现了cell的调度和主机节点的调度是相互分离的；
+  9. 在建立新的实例时，nova-cells服务选择cell，目前实现的是随机选择，
+     将来会添加过滤/权重功能，还可以基于广播获取的
+     capacity/capabilities等参数；
+  10. 在默认的情况下cell功能是禁用的。
+
