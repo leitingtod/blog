@@ -1,3 +1,19 @@
+* 修改MySQL的时区，涉及参数time_zone
+  1. 查看：show variables like '%time_zone%';
+  2. 修改
+     1. 通过my.cnf
+        
+        在 [mysqld] 之下加 default-time_zone = '+8:00'
+
+     2. 通过命令行在线修改
+	
+	set time_zone='+8:00';
+
+  3. 验证时区：select now()
+
+  Ref: 
+  - https://blog.csdn.net/mchdba/article/details/9763521
+
 * Mysql的四种隔离级别
   Ref:
   - https://www.jianshu.com/p/8d735db9c2c0/
@@ -5,6 +21,9 @@
   - https://www.jianshu.com/p/ad9947f50ff1
   - https://draveness.me/mysql-innodb.html
   - https://yq.aliyun.com/ziliao/327185
+  - https://blog.csdn.net/u011866460/article/details/40618575
+  - https://dev.mysql.com/doc/refman/8.0/en/set-transaction.html
+
 * 索引
 ** 索引的本质
    MySQL官方对索引的定义为：索引（Index）是帮助MySQL高效获取数据的数
@@ -403,6 +422,9 @@
   - https://blog.csdn.net/thundermeng/article/details/51791767
   - https://blog.csdn.net/hylongsuny/article/details/7892488
 
+* 事务
+  Ref:
+  - https://blog.csdn.net/shunfa888/article/details/80213528
 * 20+条MySQL性能优化的最佳经验
   Ref:
   - https://blog.csdn.net/kaka1121/article/details/53395587
