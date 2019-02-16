@@ -1,6 +1,6 @@
 * JD
-  1. ÊìÏ¤ openstack nova, open nebula, cloud stack, ovirt, k8s
-  2. ÊìÏ¤ python, js, java, ruby, go, ocaml, c/c++
-  3. ÊìÏ¤¼ÆËã»úÌåÏµ¡¢ĞéÄâ»¯¼¼Êõ¼°ÔÆ¼ÆËãÌåÏµ
-  4. ÊìÏ¤Ãô½İÏîÄ¿¹ÜÀí¼°CI/CDÁ÷³Ì
-  5. Á¼ºÃµÄ±à³ÌÏ°¹ß¼°ºÏ×÷½»Á÷ÒâÊ¶
+  1. ç†Ÿæ‚‰ openstack nova, open nebula, cloud stack, ovirt, k8s
+  2. ç†Ÿæ‚‰ python, js, java, ruby, go, ocaml, c/c++
+  3. ç†Ÿæ‚‰è®¡ç®—æœºä½“ç³»ã€è™šæ‹ŸåŒ–æŠ€æœ¯åŠäº‘è®¡ç®—ä½“ç³»
+  4. ç†Ÿæ‚‰æ•æ·é¡¹ç›®ç®¡ç†åŠCI/CDæµç¨‹
+  5. è‰¯å¥½çš„ç¼–ç¨‹ä¹ æƒ¯åŠåˆä½œäº¤æµæ„è¯†

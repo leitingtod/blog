@@ -1,6 +1,74 @@
-* ͨѶģʽ
-  1. ��Ե�
-  2. ���㲥
-  3. ��������
-  4. Ⱥ��
-* Kafka
+* 通讯模式
+  1. 点对点
+  2. 多点广播
+  3. 发布订阅
+  4. 群集
+
+* Kafka vs RabbitMq
+  Kafka是LinkedIn开源的分布式发布-订阅消息系统，目前归属于Apache定级项
+  目。Kafka主要特点是基于Pull的模式来处理消息消费，追求高吞吐量，一开
+  始的目的就是用于日志收集和传输。0.8版本开始支持复制，不支持事务，对
+  消息的重复、丢失、错误没有严格要求，适合产生大量数据的互联网服务的数
+  据收集业务。
+
+  RabbitMQ是使用Erlang语言开发的开源消息队列系统，基于AMQP协议来实现。
+  AMQP的主要特征是面向消息、队列、路由（包括点对点和发布/订阅）、可靠
+  性、安全。AMQP协议更多用在企业系统内，对数据一致性、稳定性和可靠性要
+  求很高的场景，对性能和吞吐量的要求还在其次。
+
+  RocketMQ是阿里开源的消息中间件，它是纯Java开发，具有高吞吐量、高可用
+  性、适合大规模分布式系统应用的特点。RocketMQ思路起源于Kafka，但并不
+  是Kafka的一个Copy，它对消息的可靠传输及事务性做了优化，目前在阿里集
+  团被广泛应用于交易、充值、流计算、消息推送、日志流式处理、binglog分
+  发等场景。
+
+
+** 在应用场景方面，
+   RabbitMQ,遵循AMQP协议，由内在高并发的erlanng语言开发，用在实时的对
+   可靠性要求比较高的消息传递上。
+
+   kafka是Linkedin于2010年12月份开源的消息发布订阅系统,它主要用于处理
+   活跃的流式数据,大数据量的数据处理上。
+** 在架构模型方面，
+
+   RabbitMQ遵循AMQP协议，RabbitMQ的broker由Exchange,Binding,queue组成，
+   其中exchange和binding组成了消息的路由键；客户端Producer通过连接
+   channel和server进行通信，Consumer从queue获取消息进行消费（长连接，
+   queue有消息会推送到consumer端，consumer循环从输入流读取数据）。
+   rabbitMQ以broker为中心；有消息的确认机制。
+
+   kafka遵从一般的MQ结构，producer，broker，consumer，以consumer为中心，
+   消息的消费信息保存的客户端consumer上，consumer根据消费的点，从
+   broker上批量pull数据；无消息确认机制。
+
+** 在吞吐量
+
+   kafka具有高的吞吐量，内部采用消息的批量处理，zero-copy机制，数据的
+   存储和获取是本地磁盘顺序批量操作，具有O(1)的复杂度，消息处理的效率
+   很高。
+
+   rabbitMQ在吞吐量方面稍逊于kafka，他们的出发点不一样，rabbitMQ支持对
+   消息的可靠的传递，支持事务，不支持批量的操作；基于存储的可靠性的要
+   求存储可以采用内存或者硬盘。
+
+** 在可用性方面，
+
+   rabbitMQ支持miror的queue，主queue失效，miror queue接管。
+
+   kafka的broker支持主备模式。
+
+** 在集群负载均衡方面，
+
+   kafka采用zookeeper对集群中的broker、consumer进行管理，可以注册topic
+   到zookeeper上；通过zookeeper的协调机制，producer保存对应topic的
+   broker信息，可以随机或者轮询发送到broker上；并且producer可以基于语
+   义指定分片，消息发送到broker的某分片上。
+
+   rabbitMQ的负载均衡需要单独的loadbalancer进行支持。
+
+** 参考
+   - https://www.cnblogs.com/davidwang456/p/4076097.html
+   - https://blog.csdn.net/yunfeng482/article/details/72856762
+   - https://blog.csdn.net/u013256816/article/details/79838428
+   - https://www.cnblogs.com/felixzh/p/6198070.html
+   - https://blog.csdn.net/sinat_27634939/article/details/80301656

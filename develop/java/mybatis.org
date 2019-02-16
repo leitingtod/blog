@@ -1,124 +1,120 @@
 * overview
-  Mybatis×÷ÎªJava³£ÓÃµÄ·ÃÎÊÊý¾Ý¿â²ãµÄ¿ò¼Ü£¬Æä¹¤×÷Ö÷Òª½»¸ø´´½¨µÄ
-  Sqlsession¶ÔÏóÍê³É¡£ËüÖ§³Ö¶¨ÖÆ»¯ SQL¡¢´æ´¢¹ý³ÌÒÔ¼°¸ß¼¶Ó³Éä¡£MyBatis
-  ±ÜÃâÁË¼¸ºõËùÓÐµÄ JDBC ´úÂëºÍÊÖ¶¯ÉèÖÃ²ÎÊýÒÔ¼°»ñÈ¡½á¹û¼¯¡£
+  Mybatisä½œä¸ºJavaå¸¸ç”¨çš„è®¿é—®æ•°æ®åº“å±‚çš„æ¡†æž¶ï¼Œå…¶å·¥ä½œä¸»è¦äº¤ç»™åˆ›å»ºçš„
+  Sqlsessionå¯¹è±¡å®Œæˆã€‚å®ƒæ”¯æŒå®šåˆ¶åŒ– SQLã€å­˜å‚¨è¿‡ç¨‹ä»¥åŠé«˜çº§æ˜ å°„ã€‚MyBatis
+  é¿å…äº†å‡ ä¹Žæ‰€æœ‰çš„ JDBC ä»£ç å’Œæ‰‹åŠ¨è®¾ç½®å‚æ•°ä»¥åŠèŽ·å–ç»“æžœé›†ã€‚
 
-  MyBatis ÊÇÖ§³Ö¶¨ÖÆ»¯ SQL¡¢´æ´¢¹ý³ÌÒÔ¼°¸ß¼¶Ó³ÉäµÄÓÅÐãµÄ³Ö¾Ã²ã¿ò¼Ü¡£
-  MyBatis ±ÜÃâÁË¼¸ºõËùÓÐµÄ JDBC ´úÂëºÍÊÖ¹¤ÉèÖÃ²ÎÊýÒÔ¼°³éÈ¡½á¹û¼¯¡£
-  MyBatis Ê¹ÓÃ¼òµ¥µÄ XML »ò×¢½âÀ´ÅäÖÃºÍÓ³Éä»ù±¾Ìå£¬½«½Ó¿ÚºÍ Java µÄ
-  POJOs(Plain Old Java Objects,ÆÕÍ¨µÄ Java¶ÔÏó)Ó³Éä³ÉÊý¾Ý¿âÖÐµÄ¼ÇÂ¼¡£
+  MyBatis æ˜¯æ”¯æŒå®šåˆ¶åŒ– SQLã€å­˜å‚¨è¿‡ç¨‹ä»¥åŠé«˜çº§æ˜ å°„çš„ä¼˜ç§€çš„æŒä¹…å±‚æ¡†æž¶ã€‚
+  MyBatis é¿å…äº†å‡ ä¹Žæ‰€æœ‰çš„ JDBC ä»£ç å’Œæ‰‹å·¥è®¾ç½®å‚æ•°ä»¥åŠæŠ½å–ç»“æžœé›†ã€‚
+  MyBatis ä½¿ç”¨ç®€å•çš„ XML æˆ–æ³¨è§£æ¥é…ç½®å’Œæ˜ å°„åŸºæœ¬ä½“ï¼Œå°†æŽ¥å£å’Œ Java çš„
+  POJOs(Plain Old Java Objects,æ™®é€šçš„ Javaå¯¹è±¡)æ˜ å°„æˆæ•°æ®åº“ä¸­çš„è®°å½•ã€‚
 
-* MybatisºËÐÄÀà 
+* Mybatisæ ¸å¿ƒç±»
 ** SqlSessionFactory
-   Ã¿¸ö»ùÓÚ MyBatis µÄÓ¦ÓÃ¶¼ÊÇÒÔÒ»¸ö SqlSessionFactory µÄÊµÀýÎªÖÐÐÄµÄ¡£
-   SqlSessionFactory µÄÊµÀý¿ÉÒÔÍ¨¹ý SqlSessionFactoryBuilder »ñµÃ¡£¶ø
-   SqlSessionFactoryBuilder Ôò¿ÉÒÔ´Ó XML ÅäÖÃÎÄ¼þ»òÍ¨¹ýJavaµÄ·½Ê½¹¹½¨
-   ³ö SqlSessionFactory µÄÊµÀý¡£SqlSessionFactory Ò»µ©±»´´½¨¾ÍÓ¦¸ÃÔÚÓ¦
-   ÓÃµÄÔËÐÐÆÚ¼äÒ»Ö±´æÔÚ£¬½¨ÒéÊ¹ÓÃµ¥ÀýÄ£Ê½»òÕß¾²Ì¬µ¥ÀýÄ£Ê½¡£
+   æ¯ä¸ªåŸºäºŽ MyBatis çš„åº”ç”¨éƒ½æ˜¯ä»¥ä¸€ä¸ª SqlSessionFactory çš„å®žä¾‹ä¸ºä¸­å¿ƒçš„ã€‚
+   SqlSessionFactory çš„å®žä¾‹å¯ä»¥é€šè¿‡ SqlSessionFactoryBuilder èŽ·å¾—ã€‚è€Œ
+   SqlSessionFactoryBuilder åˆ™å¯ä»¥ä»Ž XML é…ç½®æ–‡ä»¶æˆ–é€šè¿‡Javaçš„æ–¹å¼æž„å»º
+   å‡º SqlSessionFactory çš„å®žä¾‹ã€‚SqlSessionFactory ä¸€æ—¦è¢«åˆ›å»ºå°±åº”è¯¥åœ¨åº”
+   ç”¨çš„è¿è¡ŒæœŸé—´ä¸€ç›´å­˜åœ¨ï¼Œå»ºè®®ä½¿ç”¨å•ä¾‹æ¨¡å¼æˆ–è€…é™æ€å•ä¾‹æ¨¡å¼ã€‚
 
 ** SqlSession
-   SqlSessionÊÇÒ»¸ö½Ó¿Ú£¬ËüÓÐ2¸öÊµÏÖÀà£¬·Ö±ðÊÇDefaultSqlSession(Ä¬ÈÏÊ¹
-   ÓÃ)ÒÔ¼°SqlSessionManager¡£SqlSessionÍ¨¹ýÄÚ²¿´æ·ÅµÄÖ´ÐÐÆ÷£¨Executor£©
-   À´¶ÔÊý¾Ý½øÐÐCRUD¡£´ËÍâSqlSession²»ÊÇÏß³Ì°²È«µÄ£¬ÒòÎªÃ¿Ò»´Î²Ù×÷ÍêÊý
-   ¾Ý¿âºó¶¼Òªµ÷ÓÃclose¶ÔÆä½øÐÐ¹Ø±Õ£¬¹Ù·½½¨ÒéÍ¨¹ýtry-finallyÀ´±£Ö¤×ÜÊÇ
-   ¹Ø±ÕSqlSession¡£
+   SqlSessionæ˜¯ä¸€ä¸ªæŽ¥å£ï¼Œå®ƒæœ‰2ä¸ªå®žçŽ°ç±»ï¼Œåˆ†åˆ«æ˜¯DefaultSqlSession(é»˜è®¤ä½¿
+   ç”¨)ä»¥åŠSqlSessionManagerã€‚SqlSessioné€šè¿‡å†…éƒ¨å­˜æ”¾çš„æ‰§è¡Œå™¨ï¼ˆExecutorï¼‰
+   æ¥å¯¹æ•°æ®è¿›è¡ŒCRUDã€‚æ­¤å¤–SqlSessionä¸æ˜¯çº¿ç¨‹å®‰å…¨çš„ï¼Œå› ä¸ºæ¯ä¸€æ¬¡æ“ä½œå®Œæ•°
+   æ®åº“åŽéƒ½è¦è°ƒç”¨closeå¯¹å…¶è¿›è¡Œå…³é—­ï¼Œå®˜æ–¹å»ºè®®é€šè¿‡try-finallyæ¥ä¿è¯æ€»æ˜¯
+   å…³é—­SqlSessionã€‚
 
 ** Executor
-   Executor£¨Ö´ÐÐÆ÷£©½Ó¿ÚÓÐÁ½¸öÊµÏÖÀà£¬ÆäÖÐBaseExecutorÓÐÈý¸ö¼Ì³ÐÀà·Ö
-   ±ðÊÇBatchExecutor£¨ÖØÓÃÓï¾ä²¢Ö´ÐÐÅúÁ¿¸üÐÂ£©£¬ReuseExecutor£¨ÖØÓÃÔ¤
-   ´¦ÀíÓï¾äprepared statements£©£¬SimpleExecutor£¨ÆÕÍ¨µÄÖ´ÐÐÆ÷£©¡£ÒÔÉÏ
-   Èý¸ö¾ÍÊÇÖ÷ÒªµÄExecutor¡£Í¨¹ýÏÂÍ¼¿ÉÒÔ¿´µ½MybatisÔÚExecutorµÄÉè¼ÆÉÏÃæ
-   Ê¹ÓÃÁË×°ÊÎÕßÄ£Ê½£¬ÎÒÃÇ¿ÉÒÔÓÃCachingExecutorÀ´×°ÊÎÇ°ÃæµÄÈý¸öÖ´ÐÐÆ÷Ä¿
-   µÄ¾ÍÊÇÓÃÀ´ÊµÏÖ»º´æ¡£
+   Executorï¼ˆæ‰§è¡Œå™¨ï¼‰æŽ¥å£æœ‰ä¸¤ä¸ªå®žçŽ°ç±»ï¼Œå…¶ä¸­BaseExecutoræœ‰ä¸‰ä¸ªç»§æ‰¿ç±»åˆ†
+   åˆ«æ˜¯BatchExecutorï¼ˆé‡ç”¨è¯­å¥å¹¶æ‰§è¡Œæ‰¹é‡æ›´æ–°ï¼‰ï¼ŒReuseExecutorï¼ˆé‡ç”¨é¢„
+   å¤„ç†è¯­å¥prepared statementsï¼‰ï¼ŒSimpleExecutorï¼ˆæ™®é€šçš„æ‰§è¡Œå™¨ï¼‰ã€‚ä»¥ä¸Š
+   ä¸‰ä¸ªå°±æ˜¯ä¸»è¦çš„Executorã€‚é€šè¿‡ä¸‹å›¾å¯ä»¥çœ‹åˆ°Mybatisåœ¨Executorçš„è®¾è®¡ä¸Šé¢
+   ä½¿ç”¨äº†è£…é¥°è€…æ¨¡å¼ï¼Œæˆ‘ä»¬å¯ä»¥ç”¨CachingExecutoræ¥è£…é¥°å‰é¢çš„ä¸‰ä¸ªæ‰§è¡Œå™¨ç›®
+   çš„å°±æ˜¯ç”¨æ¥å®žçŽ°ç¼“å­˜ã€‚
 
 ** MappedStatement
-   MappedStatement¾ÍÊÇÓÃÀ´´æ·ÅÎÒÃÇSQLÓ³ÉäÎÄ¼þÖÐµÄÐÅÏ¢°üÀ¨sqlÓï¾ä£¬ÊäÈë
-   ²ÎÊý£¬Êä³ö²ÎÊýµÈµÈ¡£Ò»¸öSQL½Úµã¶ÔÓ¦Ò»¸öMappedStatement¶ÔÏó¡£
+   MappedStatementå°±æ˜¯ç”¨æ¥å­˜æ”¾æˆ‘ä»¬SQLæ˜ å°„æ–‡ä»¶ä¸­çš„ä¿¡æ¯åŒ…æ‹¬sqlè¯­å¥ï¼Œè¾“å…¥
+   å‚æ•°ï¼Œè¾“å‡ºå‚æ•°ç­‰ç­‰ã€‚ä¸€ä¸ªSQLèŠ‚ç‚¹å¯¹åº”ä¸€ä¸ªMappedStatementå¯¹è±¡ã€‚
 
-* MybatisµÄÔ­Àí¼°Æä¹¤×÷Á÷³Ì
-  Mybatis¼ÓÔØÁ÷³Ì
-  1. spring¼ÓÔØmybatis
-  2. ¼ÓÔØÅäÖÃÎÄ¼þµ½ÄÚ´æ
-  3. ¼ÓÔØmapperÎÄ¼þµ½ÄÚ´æ
-  4. Éú²úSqlsessionFactory
+* Mybatisçš„åŽŸç†åŠå…¶å·¥ä½œæµç¨‹
+  MybatisåŠ è½½æµç¨‹
+  1. springåŠ è½½mybatis
+  2. åŠ è½½é…ç½®æ–‡ä»¶åˆ°å†…å­˜
+  3. åŠ è½½mapperæ–‡ä»¶åˆ°å†…å­˜
+  4. ç”Ÿäº§SqlsessionFactory
 
- 
-  MybatisÖ´ÐÐÁ÷³Ì
-  1. ´ÓSqlsessionFactory»ñÈ¡Sqlsession
-  4. ·â×°ÇëÇó²ÎÊý
-  5. Ô¤±àÒësql
-  6. Ö´ÐÐsql
-  7. ·â×°·µ»Ø²ÎÊý
 
-* ÊÂÎñ¹ÜÀí»úÖÆ
-  MyBatis ÖÐÓÐÁ½ÖÖÀàÐÍµÄÊÂÎñ¹ÜÀíÆ÷£¨Ò²¾ÍÊÇ type=¡±[JDBC|MANAGED]¡±£©
-  1. JDBC - Ö±½ÓÊ¹ÓÃÁË JDBC µÄÌá½»ºÍ»Ø¹öÉèÖÃ£¬ËüÒÀÀµÓÚ´ÓÊý¾ÝÔ´µÃµ½µÄÁ¬½Ó
-     À´¹ÜÀíÊÂÎñ·¶Î§¡£
-  2. MANAGED - ÈÃÈÝÆ÷À´¹ÜÀíÊÂÎñµÄÕû¸öÉúÃüÖÜÆÚ£¨±ÈÈç JEE Ó¦ÓÃ·þÎñÆ÷µÄÉÏÏÂ
-     ÎÄ£©¡£
+  Mybatisæ‰§è¡Œæµç¨‹
+  1. ä»ŽSqlsessionFactoryèŽ·å–Sqlsession
+  4. å°è£…è¯·æ±‚å‚æ•°
+  5. é¢„ç¼–è¯‘sql
+  6. æ‰§è¡Œsql
+  7. å°è£…è¿”å›žå‚æ•°
 
-  SqlSessionFactory mybatisÍ¨¹ýÕâ¸öºËÐÄÀàÀ´¹ÜÀísession£¬session½øÐÐÌá½»
-  ºÍ»Ø¹ö¡£
+* äº‹åŠ¡ç®¡ç†æœºåˆ¶
+  MyBatis ä¸­æœ‰ä¸¤ç§ç±»åž‹çš„äº‹åŠ¡ç®¡ç†å™¨ï¼ˆä¹Ÿå°±æ˜¯ type=â€[JDBC|MANAGED]â€ï¼‰
+  1. JDBC - ç›´æŽ¥ä½¿ç”¨äº† JDBC çš„æäº¤å’Œå›žæ»šè®¾ç½®ï¼Œå®ƒä¾èµ–äºŽä»Žæ•°æ®æºå¾—åˆ°çš„è¿žæŽ¥
+     æ¥ç®¡ç†äº‹åŠ¡èŒƒå›´ã€‚
+  2. MANAGED - è®©å®¹å™¨æ¥ç®¡ç†äº‹åŠ¡çš„æ•´ä¸ªç”Ÿå‘½å‘¨æœŸï¼ˆæ¯”å¦‚ JEE åº”ç”¨æœåŠ¡å™¨çš„ä¸Šä¸‹
+     æ–‡ï¼‰ã€‚
 
-** ³£¼û¿Óµã
-   Ê¹ÓÃÊÂÎñ×¢½â@Transactional Ö®Ç°£¬Ó¦¸ÃÏÈÁË½âËüµÄÏà¹ØÊôÐÔ£¬±ÜÃâÔÚÊµ¼Ê
-   ÏîÄ¿ÖÐ²ÈÖÐ¸÷ÖÖ¸÷ÑùµÄ¿Óµã¡£
+  SqlSessionFactory mybatisé€šè¿‡è¿™ä¸ªæ ¸å¿ƒç±»æ¥ç®¡ç†sessionï¼Œsessionè¿›è¡Œæäº¤
+  å’Œå›žæ»šã€‚
 
-**** ³£¼û¿Óµã1£ºÓöµ½·Ç¼ì²âÒì³£Ê±£¬ÊÂÎñ²»¿ªÆô£¬Ò²ÎÞ·¨»Ø¹ö¡£
-     Ô­Òò·ÖÎö£ºÒòÎªSpringµÄÄ¬ÈÏµÄÊÂÎñ¹æÔòÊÇÓöµ½ÔËÐÐÒì³£
-     £¨RuntimeException£©ºÍ³ÌÐò´íÎó£¨Error£©²Å»á»Ø¹ö¡£Èç¹ûÏëÕë¶Ô·Ç¼ì²âÒì
-     ³£½øÐÐÊÂÎñ»Ø¹ö£¬¿ÉÒÔÔÚ@Transactional ×¢½âÀïÊ¹ÓÃrollbackFor ÊôÐÔÃ÷È·
-     Ö¸¶¨Òì³£¡£
+** å¸¸è§å‘ç‚¹
+   ä½¿ç”¨äº‹åŠ¡æ³¨è§£@Transactional ä¹‹å‰ï¼Œåº”è¯¥å…ˆäº†è§£å®ƒçš„ç›¸å…³å±žæ€§ï¼Œé¿å…åœ¨å®žé™…
+   é¡¹ç›®ä¸­è¸©ä¸­å„ç§å„æ ·çš„å‘ç‚¹ã€‚
+
+**** å¸¸è§å‘ç‚¹1ï¼šé‡åˆ°éžæ£€æµ‹å¼‚å¸¸æ—¶ï¼Œäº‹åŠ¡ä¸å¼€å¯ï¼Œä¹Ÿæ— æ³•å›žæ»šã€‚
+     åŽŸå› åˆ†æžï¼šå› ä¸ºSpringçš„é»˜è®¤çš„äº‹åŠ¡è§„åˆ™æ˜¯é‡åˆ°è¿è¡Œå¼‚å¸¸
+     ï¼ˆRuntimeExceptionï¼‰å’Œç¨‹åºé”™è¯¯ï¼ˆErrorï¼‰æ‰ä¼šå›žæ»šã€‚å¦‚æžœæƒ³é’ˆå¯¹éžæ£€æµ‹å¼‚
+     å¸¸è¿›è¡Œäº‹åŠ¡å›žæ»šï¼Œå¯ä»¥åœ¨@Transactional æ³¨è§£é‡Œä½¿ç”¨rollbackFor å±žæ€§æ˜Žç¡®
+     æŒ‡å®šå¼‚å¸¸ã€‚
 
      @Transactional(rollbackFor = Exception.class)
 
-**** ³£¼û¿Óµã2£º ÔÚÒµÎñ²ã²¶×½Òì³£ºó£¬·¢ÏÖÊÂÎñ²»ÉúÐ§¡£
-     ÔÚÒµÎñ²ãÊÖ¹¤²¶×½²¢´¦ÀíÁËÒì³££¬Äã¶¼°ÑÒì³£¡°³Ô¡±µôÁË£¬Spring×ÔÈ»²»
-     ÖªµÀÕâÀïÓÐ´í£¬¸ü²»»áÖ÷¶¯È¥»Ø¹öÊý¾Ý¡£
+**** å¸¸è§å‘ç‚¹2ï¼š åœ¨ä¸šåŠ¡å±‚æ•æ‰å¼‚å¸¸åŽï¼Œå‘çŽ°äº‹åŠ¡ä¸ç”Ÿæ•ˆã€‚
+     åœ¨ä¸šåŠ¡å±‚æ‰‹å·¥æ•æ‰å¹¶å¤„ç†äº†å¼‚å¸¸ï¼Œä½ éƒ½æŠŠå¼‚å¸¸â€œåƒâ€æŽ‰äº†ï¼ŒSpringè‡ªç„¶ä¸
+     çŸ¥é“è¿™é‡Œæœ‰é”™ï¼Œæ›´ä¸ä¼šä¸»åŠ¨åŽ»å›žæ»šæ•°æ®ã€‚
 
-**** ÍÆ¼ö×ö·¨£ºÔÚÒµÎñ²ãÍ³Ò»Å×³öÒì³££¬È»ºóÔÚ¿ØÖÆ²ãÍ³Ò»´¦Àí¡£
+**** æŽ¨èåšæ³•ï¼šåœ¨ä¸šåŠ¡å±‚ç»Ÿä¸€æŠ›å‡ºå¼‚å¸¸ï¼Œç„¶åŽåœ¨æŽ§åˆ¶å±‚ç»Ÿä¸€å¤„ç†ã€‚
 
-     
-** ÒýÓÃ
+** å‚è€ƒ
    - https://www.jianshu.com/p/380a9d980ca5
    - https://www.ibm.com/developerworks/cn/java/j-master-spring-transactional-use/index.html
 
-* Á¬½Ó³Ø¹ÜÀí»úÖÆ
-
-* »º´æ»úÖÆ
-  
-* SQLÓï¾äµÄÅäÖÃ·½Ê½
-
+* è¿žæŽ¥æ± ç®¡ç†æœºåˆ¶
+* ç¼“å­˜æœºåˆ¶
+** å‚è€ƒ
+   - https://blog.csdn.net/bjweimengshu/article/details/79988252
+* SQLè¯­å¥çš„é…ç½®æ–¹å¼
 * spring-boot-mybatis-starter
-  ¹ØÓÚspring-bootÓëmybatisÕûºÏÓÅ»¯·½ÃæµÄ½éÉÜ£¬¾ÍÊÇ
-  Mybatis-Spring-boot-starterµÄ½éÉÜ£º
-** È¡Ïûspring-mybatis.xmlÅäÖÃ
-  1. ×Ô¶¯¼ì²âÒÑ´æÔÚµÄDatasource
+  å°†spring-bootä¸Žmybatisæ•´åˆä¼˜åŒ–ï¼Œæ–¹ä¾¿ä½¿ç”¨ã€‚
+** å–æ¶ˆspring-mybatis.xmlé…ç½®
+  1. è‡ªåŠ¨æ£€æµ‹å·²å­˜åœ¨çš„Datasource
 
-     Ö®Ç°£¬ÐèÒªÔÚspring-mybatis.xmlÖÐÅäÖÃdatasourceµÄBean£¬ÏÖÔÚÖ»ÐèÒª
-     ÔÚapplication.ymlÖÐÅäÖÃµ½spring.datasource½ÚµãÏÂ¾Í¿ÉÒÔ¡£ÒòÎª
-     mybatis-spring-bootÖ§³Ö×Ô¶¯¼ì²âÒÑ´æÔÚµÄDatasource¡£
-  2. ½«´´½¨²¢×¢²áSqlSessionFactoryBeanÊµÀý£¬²¢´«ÈëDatasource¡£
+     ä¹‹å‰ï¼Œéœ€è¦åœ¨spring-mybatis.xmlä¸­é…ç½®datasourceçš„Beanï¼ŒçŽ°åœ¨åªéœ€è¦
+     åœ¨application.ymlä¸­é…ç½®åˆ°spring.datasourceèŠ‚ç‚¹ä¸‹å°±å¯ä»¥ã€‚å› ä¸º
+     mybatis-spring-bootæ”¯æŒè‡ªåŠ¨æ£€æµ‹å·²å­˜åœ¨çš„Datasourceã€‚
+  2. å°†åˆ›å»ºå¹¶æ³¨å†ŒSqlSessionFactoryBeanå®žä¾‹ï¼Œå¹¶ä¼ å…¥Datasourceã€‚
 
-     ÔÚmybatisÖÐ£¬sqlsession¿ÉÒÔÓÐSqlSessionFactory´´½¨£»¶øÔÚ
-     mybatis-springÖÐÔòÐèÒªSqlSessionFactoryBeanÀ´´´½¨£¬²¢´«Èë
-     datasource¡£
-  3. ½«´ÓSqlSessionFactoryBeanÖÐ´´½¨²¢×¢²áSqlSessionTemplate
+     åœ¨mybatisä¸­ï¼Œsqlsessionå¯ä»¥æœ‰SqlSessionFactoryåˆ›å»ºï¼›è€Œåœ¨
+     mybatis-springä¸­åˆ™éœ€è¦SqlSessionFactoryBeanæ¥åˆ›å»ºï¼Œå¹¶ä¼ å…¥
+     datasourceã€‚
+  3. å°†ä»ŽSqlSessionFactoryBeanä¸­åˆ›å»ºå¹¶æ³¨å†ŒSqlSessionTemplate
 
-     SqlSessionTemplateÊÇSqlSessionµÄÊµÏÖÀà£¬½ÏSqlSessionµÄÄ¬ÈÏÊµÏÖÀà
-     DefaultSqlSessionÀ´Ëµ£¬ÊÇÏß³Ì°²È«µÄ¡£
-  4. ×Ô¶¯É¨Ãèmappers£¬½«Æä¹ØÁªµ½SqlSessionTemplate£¬²¢½«mappers×¢²áµ½
-     springÈÝÆ÷ÖÐ£¬ÒÔ±ã×¢Èëµ½ÎÒÃÇµÄbeansÖÐ¡£
+     SqlSessionTemplateæ˜¯SqlSessionçš„å®žçŽ°ç±»ï¼Œè¾ƒSqlSessionçš„é»˜è®¤å®žçŽ°ç±»
+     DefaultSqlSessionæ¥è¯´ï¼Œæ˜¯çº¿ç¨‹å®‰å…¨çš„ã€‚
+  4. è‡ªåŠ¨æ‰«æmappersï¼Œå°†å…¶å…³è”åˆ°SqlSessionTemplateï¼Œå¹¶å°†mappersæ³¨å†Œåˆ°
+     springå®¹å™¨ä¸­ï¼Œä»¥ä¾¿æ³¨å…¥åˆ°æˆ‘ä»¬çš„beansä¸­ã€‚
 
-     Ä¬ÈÏÇé¿öÏÂ£¬mybatis-spring-boot½«ËÑË÷±»@Mapper×¢ÊÍ±ê×¢µÄmappers¡£
+     é»˜è®¤æƒ…å†µä¸‹ï¼Œmybatis-spring-bootå°†æœç´¢è¢«@Mapperæ³¨é‡Šæ ‡æ³¨çš„mappersã€‚
 
-  Ref:
+** å‚è€ƒ
   - https://blog.csdn.net/gongsunjinqian/article/details/52710557
   - https://gavinlee1.github.io/2017/03/17/%E6%B5%85%E5%85%A5%E6%B5%85%E5%87%BA-SpringBoot-%E9%9B%86%E6%88%90-Mybatis/
 
-* ²Î¿¼
+* å‚è€ƒ
   Ref:
   - https://blog.csdn.net/qq_27886997/article/details/78073379
   - https://blog.csdn.net/qq_27384769/article/details/79369843
   - https://blog.csdn.net/qq_41426442/article/details/79663421
-

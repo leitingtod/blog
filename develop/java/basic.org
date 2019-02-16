@@ -42,7 +42,7 @@
 *** 参考
     - https://www.cnblogs.com/jacksontao/p/8608291.html
     - https://www.cnblogs.com/yepei/p/5650440.html
-** Annontation
+** 注解
    Java5开始引入的新特征，中文名称叫注解。
 
    它提供了一种安全的类似注释的机制，用来将任何的信息或元数据
@@ -70,13 +70,13 @@
     - @Documented – 表示是否将注解信息添加在java文档中。
     - @Retention – 什么时候使用该注解
       - RetentionPolicy.SOURCE : 在编译阶段丢弃。这些注解在编译结束之
-        后就不再有任何意义，所以它们不会写入字节码。@Override,
-        @SuppressWarnings都属于这类注解。
+	后就不再有任何意义，所以它们不会写入字节码。@Override,
+	@SuppressWarnings都属于这类注解。
       - RetentionPolicy.CLASS : 在类加载的时候丢弃。在字节码文件的处理
-        中有用。注解默认使用这种方式
+	中有用。注解默认使用这种方式
       - RetentionPolicy.RUNTIME : 始终不会丢弃，运行期也保留该注解，因
-        此可以使用反射机制读取该注解的信息。我们自定义的注解通常使用这
-        种方式。
+	此可以使用反射机制读取该注解的信息。我们自定义的注解通常使用这
+	种方式。
     - @Target – 注解用于什么地方。默认值为任何元素，表示该注解用于什么
       地方。可用的ElementType参数包括：
       - ElementType.CONSTRUCTOR:用于描述构造器
@@ -104,9 +104,12 @@
 
     PS:自定义注解需要使用到元注解
 
+*** 参考
+    - https://www.cnblogs.com/acm-bingzi/p/javaAnnotation.html
+
 ** final
    final关键字可以用来修饰类、方法和变量（包括成员变量和局部变量）。
-   
+
    1. 类
 
       当用final修饰一个类时，表明这个类不能被继承。也就是说，如果一个
@@ -114,7 +117,7 @@
       量可以根据需要设为final，但是要注意final类中的所有成员方法都会被
       隐式地指定为final方法。
    2. 方法
-      
+
       使用final方法的原因有两个。第一个原因是把方法锁定，以防任何继承
       类修改它的含义；第二个原因是效率。在早期的Java实现版本中，会将
       final方法转为内嵌调用。但是如果方法过于庞大，可能看不到内嵌调用
@@ -139,7 +142,7 @@
 *** 参考
     - https://www.cnblogs.com/waterystone/p/4920797.html
     - https://www.jianshu.com/p/da9d051dcc3d
-    
+
 ** 日期时间
    常用的日期时间类：java.util.Date类->是在Java 1.0中；而
    java.util.Calendar类->是在Java 1.1中。
@@ -150,7 +153,7 @@
    java.util.Calendar缺点：和Date类一样都是可变的。而且经常会同时用
    Date和Calendar，很混乱。
 
-   使用Java8，新的日期时间API引入覆盖旧的日期时间API的以下缺点:
+   Java8新的日期时间API解决了旧的日期时间API的以下缺点:
    1. 非线程安全  - java.util.Date不是线程安全的，因此开发者必须在使用
       日期处理并发性问题。新的日期时间API是不可变的，并且没有setter方
       法。
@@ -164,11 +167,96 @@
 *** 参考
     - https://www.cnblogs.com/comeboo/p/5378922.html
     - https://blog.csdn.net/timchen525/article/details/75041561
-** 参考
-   - https://www.cnblogs.com/acm-bingzi/p/javaAnnotation.html
+** 双亲委派模型
+   Java是运行在Java的虚拟机(JVM)中的，但是它是怎么就运行在JVM中了呢？
+   我们在IDE中编写的Java源代码被编译器编译成.class的字节码文件。然后由
+   我们得ClassLoader负责将这些class问价加载到JVM中去执行。
+
+   JVM中提供了三层的ClassLoader：
+   - Bootstrap classLoader:主要负责加载核心的类库(java.lang.*等)，构造
+     ExtClassLoader和APPClassLoader。
+   - ExtClassLoader：主要负责加载jre/lib/ext目录下的一些扩展的jar。
+   - AppClassLoader：主要负责加载应用程序的主函数类
+
+   类加载器与类的唯一性：类加载器虽然只用于实现类的加载动作，但是对于
+   任意一个类，都需要由加载它的类加载器和这个类本身共同确立其在Java虚
+   拟机中的唯一性。通俗的说，JVM中两个类是否“相等”，首先就必须是同一
+   个类加载器加载的，否则，即使这两个类来源于同一个Class文件，被同一个
+   虚拟机加载，只要类加载器不同，那么这两个类必定是不相等的。
+
+   用双亲委派模式的是好处是：
+   1. Java类随着它的类加载器一起具备了一种带有优先级的层次关系，通过
+      这种层级关可以避免类的重复加载，当父亲已经加载了该类时，就没有
+      必要子ClassLoader再加载一次。
+
+   2. 考虑到安全因素，java核心api中定义类型不会被随意替换，假设通过网
+      络传递一个名为java.lang.Integer的类，通过双亲委托模式传递到启动
+      类加载器，而启动类加载器在核心Java API发现这个名字的类，发现该
+      类已被 加载，并不会重新加载网络传递的过来的java.lang.Integer，而
+      直接返回已加载过的Integer.class，这样便可以防止核心API库被随意篡
+      改。
+
+   Ref:
+   - https://blog.csdn.net/weixin_38055381/article/details/80167881
+   - https://blog.csdn.net/u011080472/article/details/51332866
+   - https://www.cnblogs.com/lanxuezaipiao/p/4138511.html
+
+** 反射
+   Java让我们在运行时识别对象和类的信息，主要有2种方式：
+   + RTTI，它假定我们在编译时已经知道了所有的类型信息，编译器在编译时
+     打开和检查.class文件；
+   + 反射，它允许我们在运行时发现和使用类的信息，运行时打开和检查.class文
+     件。
+
+   Java反射机制主要提供了以下功能：
+   - 在运行时构造任意一个类的对象
+   - 在运行时获取任意一个类所具有的成员变量和方法
+   - 在运行时调用任意一个对象的方法（属性）
+   - 生成动态代理
+
+   Ref:
+   - https://www.cnblogs.com/luoxn28/p/5686794.html
+** 泛型
+   泛型，即“参数化类型”。泛型一般是用来解决代码复用的问题。常见的一
+   种情况是，你有一个函数，它带有一个参数，参数类型是A，然而当参数类型
+   改变成B的时候，你不得不复制这个函数。编译过程中，正确检验泛型结果后，
+   会将泛型的相关信息擦出，并且在对象进入和离开方法的边界处添加类型检
+   查和类型转换的方法。也就是说，泛型信息不会进入到运行时阶段。
+
+   泛型有三种使用方式，分别为：泛型类、泛型接口、泛型方法
+
+   通过提示信息我们可以看到Generic<Integer>不能被看作为
+   `Generic<Number>的子类。由此可以看出:同一种泛型可以对应多个版本（因
+   为参数类型是不确定的），不同版本的泛型类实例是不兼容的。
+
+   泛型类，是在实例化类的时候指明泛型的具体类型；泛型方法，是在调用方
+   法的时候指明泛型的具体类型 。
+*** 为什么 Java 泛型要通过擦除来实现？擦除有什么坏处或者说代价？
+    可以说 Java 泛型的存在就是一个不得已的妥协，正因为这种妥协导致了
+    Java 泛型的混乱，甚至说是 JDK 泛型设计的失败。Java 之所以要通过擦
+    除来实现泛型机制其实是为了兼容性考虑，只有这样才能让非泛化代码到泛
+    化代码的转变过程建立在不破坏现有类库的实现上。正是因为这种兼容也带
+    来了一些代价，譬如泛型不能显式地引用运行时类型的操作之中（如向上向
+    下转型、instanceof 操作等），因为所有关于参数的信息都丢失了，所以
+    任何时候使用泛型都要提醒自己背后的真实擦除类型到底是什么；此外擦除
+    和兼容性导致了使用泛型并不是强制的（如 List<String> list = new
+    ArrayList(); 等写法）；其次擦除会导致我们在编写代码时十分谨慎（如
+    不想被擦除为 Object 类型时不要忘了添加上边界操作等）
+
+*** Ref:
+    - https://blog.csdn.net/s10461/article/details/53941091
+    - https://www.cnblogs.com/huansky/p/8043149.html
+
 * 集合
 ** HashMap
-   HashMap 里面是一个数组，然后数组中每个元素是一个单向链表。   
+   HashMap 里面是一个数组，然后数组中每个元素是一个单向链表。
+
+   HashMap实现了Map接口，Map接口对键值对进行映射。Map中不允许重复的键。
+   Map接口有两个基本的实现，HashMap和TreeMap。TreeMap保存了对象的排列
+   次序，而HashMap则不能。HashMap允许键和值为null。HashMap是非
+   synchronized的，但collection框架提供方法能保证HashMap synchronized，
+   这样多个线程同时访问HashMap时，能保证只有一个线程更改Map。
+
 *** 默认容量为何是16？为何是2的整数倍？
     初始容量为1<<4，即16。负载因子是0.75，当存入的元素占比超过
     16*0.75=12时，进行扩容。在容量不超过int类型的范围时，将大小扩为原
@@ -183,7 +271,7 @@
     3. String类型的key，不能用==判断或者可能有哈希冲突时，尽量减少长度
     4. 使用定制版的EnumMap
     5. 使用IntObjectHashMap
-    
+
 *** 参考
     - http://www.importnew.com/21429.html
     - http://calvin1978.blogcn.com/articles/latency.html
@@ -194,13 +282,7 @@
    hashCode()方法，这样才能比较对象的值是否相等，以确保set中没有储存相
    等的对象。如果我们没有重写这两个方法，将会使用这个方法的默认实现。
 
-   HashMap实现了Map接口，Map接口对键值对进行映射。Map中不允许重复的键。
-   Map接口有两个基本的实现，HashMap和TreeMap。TreeMap保存了对象的排列
-   次序，而HashMap则不能。HashMap允许键和值为null。HashMap是非
-   synchronized的，但collection框架提供方法能保证HashMap synchronized，
-   这样多个线程同时访问HashMap时，能保证只有一个线程更改Map。
-
-** ConcurrentHashMap  
+** ConcurrentHashMap
    简单理解就是，ConcurrentHashMap 是一个 Segment 数组，Segment 通过继
    承 ReentrantLock 来进行加锁，所以每次需要加锁的操作锁住的是一个
    segment，这样只要保证每个 Segment 是线程安全的，也就实现了全局的线
@@ -223,7 +305,7 @@
 
       初始化槽，这个我们之前就说过了，使用了 CAS 来初始化 Segment 中的
       数组。
-     
+
       添加节点到链表的操作是插入到表头的，所以，如果这个时候 get 操作
       在链表遍历的过程已经到了中间，是不会影响的。当然，另一个并发问题
       就是 get 操作在 put 之后，需要保证刚刚插入表头的节点被读取，这个
@@ -238,22 +320,30 @@
       如果 remove 破坏的节点 get 操作已经过去了，那么这里不存在任何问
       题。
 
-      如果 remove 先破坏了一个节点，分两种情况考虑。 1、如果此节点是头
-n      结点，那么需要将头结点的 next 设置为数组该位置的元素，table 虽然
-      使用了 volatile 修饰，但是 volatile 并不能提供数组内部操作的可见
-      性保证，所以源码中使用了 UNSAFE 来操作数组，请看方法 setEntryAt。
-      2、如果要删除的节点不是头结点，它会将要删除节点的后继节点接到前
-      驱节点中，这里的并发保证就是 next 属性是 volatile 的。
+      如果 remove 先破坏了一个节点，分两种情况考虑。 
+      1. 如果此节点是头结点，那么需要将头结点的 next 设置为数组该位置
+         的元素，table 虽然使用了 volatile 修饰，但是 volatile 并不能
+         提供数组内部操作的可见性保证，所以源码中使用了 UNSAFE 来操作
+         数组，请看方法 setEntryAt。
+      2. 如果要删除的节点不是头结点，它会将要删除节点的后继节点接到前
+         驱节点中，这里的并发保证就是 next 属性是 volatile 的。
 
    Java8 对 HashMap 进行了一些修改，最大的不同就是利用了红黑树，所以其
    由 数组+链表+红黑树 组成。
+
+** JUC线程安全的集合类
+   Ref:
+   - https://blog.csdn.net/u014454539/article/details/80569510
+   - https://blog.csdn.net/carson0408/article/details/81836189
+   - https://blog.csdn.net/sinat_33087001/article/details/77699755
+   - https://blog.csdn.net/china_wanglong/article/details/38828407
 
 ** 参考
    - http://www.importnew.com/28263.html
 * 多线程
 ** 使用场景
    1. 后台任务: 定时发送邮件
-   2. 异步处理: 
+   2. 异步处理:
    3. 分布式计算
    4. 数据库数据分析、数据迁移
    5. 耗时的操作
@@ -278,23 +368,23 @@ n      结点，那么需要将头结点的 next 设置为数组该位置的元�
    ThreadLocal为每个线程的中并发访问的数据提供一个副本，通过访问副本来
    运行业务，这样的结果是耗费了内存，单大大减少了线程同步所带来性能消耗，
    也减少了线程并发控制的复杂度。
- 
+
    ThreadLocal不能使用原子类型，只能使用Object类型。ThreadLocal的使用比
    synchronized要简单得多。
- 
+
    ThreadLocal和Synchonized都用于解决多线程并发访问。但是ThreadLocal与
    synchronized有本质的区别。synchronized是利用锁的机制，使变量或代码块
    在某一时该只能被一个线程访问。而ThreadLocal为每一个线程都提供了变量
    的副本，使得每个线程在某一时间访问到的并不是同一个对象，这样就隔离了
    多个线程对数据的数据共享。而Synchronized却正好相反，它用于在多个线程
    间通信时能够获得数据共享。
- 
+
    Synchronized用于线程间的数据共享，而ThreadLocal则用于线程间的数据隔
    离。
- 
+
    当然ThreadLocal并不能替代synchronized,它们处理不同的问题域。
    Synchronized用于实现同步机制，比ThreadLocal更加复杂。
-  
+
 *** 参考
     - ThreadLocal: http://blog.51cto.com/lavasoft/51926
     - https://www.jianshu.com/p/98b68c97df9b
@@ -306,21 +396,21 @@ n      结点，那么需要将头结点的 next 设置为数组该位置的元�
    2. 可以根据系统的承受能力，调整线程池中工作线线程的数目，防止因为消
       耗过多的内存，而把服务器累趴下(每个线程需要大约1MB内存，线程开的
       越多，消耗的内存也就越大，最后死机)。
-   
+
    Java里面线程池的顶级接口是Executor，但是严格意义上讲Executor并不是
    一个线程池，而只是一个执行线程的工具。真正的线程池接口是
    ExecutorService。
 
    ExecutorService关闭方法：
    1. shutdown()
-      
+
       将线程池状态置为SHUTDOWN,并不会立即停止：
       1. 停止接收外部submit的任务
       2. 内部正在跑的任务和队列里等待的任务，会执行完
       3. 等到第二步完成后，才真正停止
 
    2. shutdownNow()
-      
+
       将线程池状态置为STOP。企图立即停止，事实上不一定：
       1. 跟shutdown()一样，先停止接收外部提交的任务
       2. 忽略队列里等待的任务
@@ -334,7 +424,7 @@ n      结点，那么需要将头结点的 next 设置为数组该位置的元�
       须要等待所有正在执行的任务都执行完成了才能退出。
 
    3. awaitTermination(long timeOut, TimeUnit unit)
-      
+
       当前线程阻塞，直到:
       1. 等所有已提交的任务（包括正在跑的和队列中等待的）执行完
       2. 或者等超时时间到
@@ -347,12 +437,12 @@ n      结点，那么需要将头结点的 next 设置为数组该位置的元�
    运行规则，规避资源耗尽的风险。
 
    public ThreadPoolExecutor(int corePoolSize,
-                              int maximumPoolSize,
-                              long keepAliveTime,
-                              TimeUnit unit,
-                              BlockingQueue<Runnable> workQueue,
-                              ThreadFactory threadFactory,
-                              RejectedExecutionHandler handler) 
+			      int maximumPoolSize,
+			      long keepAliveTime,
+			      TimeUnit unit,
+			      BlockingQueue<Runnable> workQueue,
+			      ThreadFactory threadFactory,
+			      RejectedExecutionHandler handler)
 
    1. corePoolSize - 线程池核心池的大小。
    2. maximumPoolSize - 线程池的最大线程数。
@@ -383,13 +473,13 @@ n      结点，那么需要将头结点的 next 设置为数组该位置的元�
 
    3. 明确拒绝策略
       1. ThreadPoolExecutor.AbortPolicy: 丢弃任务并抛出
-         RejectedExecutionException异常。 (默认)
+	 RejectedExecutionException异常。 (默认)
       2. ThreadPoolExecutor.DiscardPolicy：也是丢弃任务，但是不抛出异
-         常。
+	 常。
       3. ThreadPoolExecutor.DiscardOldestPolicy：丢弃队列最 前面的任
-         务，然后重新尝试执行任务（重复此过程）
+	 务，然后重新尝试执行任务（重复此过程）
       4. ThreadPoolExecutor.CallerRunsPolicy：由调用线程处理该任务
- 
+
    Executors 各个方法的弊端：
    1. newFixedThreadPool 和 newSingleThreadExecutor:主要问题是堆积的请
       求处理队列可能会耗费非常大的内存，甚至 OOM。
@@ -399,7 +489,7 @@ n      结点，那么需要将头结点的 next 设置为数组该位置的元�
    让我们再看看Executors提供的那几个工厂方法。
 
    1. newSingleThreadExecutor
-   
+
       创建一个单线程的线程池。这个线程池只有一个线程在工作，也就是相当
       于单线程串行执行所有任务。如果这个唯一的线程因为异常结束，那么会
       有一个新的线程来替代它。此线程池保证所有任务的执行顺序按照任务
@@ -409,11 +499,11 @@ n      结点，那么需要将头结点的 next 设置为数组该位置的元�
       LinkedBlockingQueue<Runnable>());
 
    2. newFixedThreadPool
-      
+
       创建固定大小的线程池。每次提交一个任务就创建一个线程，直到线程达
       到线程池的最大大小。线程池的大小一旦达到最大值就会保持不变，如果
       某个线程因为执行异常而结束，那么线程池会补充一个新线程
-      
+
       new ThreadPoolExecutor(nThreads, nThreads, 0L,
       TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
@@ -423,7 +513,7 @@ n      结点，那么需要将头结点的 next 设置为数组该位置的元�
       程，那么就会回收部分空闲（60秒不执行任务）的线程，当任务数增加时，
       此线程池又可以智能的添加新线程来处理任务。此线程池不会对线程池大
       小做限制，（或者说JVM）能够创建的最大线程大小。
-      
+
       new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L,
       TimeUnit.SECONDS,new SynchronousQueue<Runnable>());
 
@@ -431,15 +521,48 @@ n      结点，那么需要将头结点的 next 设置为数组该位置的元�
 
       创建一个定长线程池，支持定时及周期性任务执行。
 
-   
+
 *** 参考
     - https://blog.csdn.net/qq_33300570/article/details/78394188
     - https://blog.csdn.net/huanyuminhao/article/details/51974171
     - https://www.ibm.com/developerworks/cn/java/j-lo-taskschedule/
     - https://blog.csdn.net/u012168222/article/details/52790400
 
+** 线程池及增长策略和拒绝策略
+   Ref:
+   - http://www.cnblogs.com/bopo/p/9485764.html
+   - https://blog.csdn.net/u011479540/article/details/51867886/
+   - https://www.cnblogs.com/studyLog-share/p/5286290.html
+   - https://www.cnblogs.com/leipDao/p/8436380.html
+   - https://blog.csdn.net/wfzczangpeng/article/details/52015866
+   - https://www.cnblogs.com/timlearn/p/4023394.html
+   - https://www.cnblogs.com/nankeyimengningchenlun/p/9132987.html
+   - https://blog.csdn.net/wang7807564/article/details/80048308
+   - https://blog.csdn.net/xiamiflying/article/details/80776416
+   - https://blog.csdn.net/u011163372/article/details/73995897
+   - https://blog.csdn.net/zhou920786312/article/details/83747698
 ** 确保三个线程顺序执行
    https://blog.csdn.net/suyimin2010/article/details/81025080
+** Java高并发之无锁与Atomic源码分析
+   无锁即无障碍的运行, 所有线程都可以到达临界区, 接近于无等待.
+
+   CAS原理: CAS包含3个参数CAS(V,E,N).V表示要更新的变量, E表示预期值, N
+   表示新值.仅当V值等于E值时, 才会将V的值设为N, 如果V值和E值不同, 则说
+   明已经有其他线程做了更新, 则当前线程什么都不做. 最后, CAS返回当前V
+   的真实值.  CAS操作是抱着乐观的态度进行的, 它总是认为自己可以成功完
+   成操作.
+
+   当多个线程同时使用CAS操作一个变量时, 只有一个会胜出, 并成功更新, 其
+   余均会失败.失败的线程不会被挂起,仅是被告知失败, 并且允许再次尝试,
+   当然也允许失败的线程放弃操作.基于这样的原理, CAS操作即时没有锁,也
+   可以发现其他线程对当前线程的干扰, 并进行恰当的处理.
+
+   Ref:
+   - https://www.cnblogs.com/xdecode/p/9022525.html
+** 参考
+   - https://www.cnblogs.com/loaderman/p/6411225.html
+   - https://www.cnblogs.com/shan1393/p/8999366.html
+   - https://blog.csdn.net/qq_19663899/article/details/81951809
 * JVM
 ** Minor GC ，Full GC 触发条件
    Minor GC触发条件：
@@ -448,8 +571,8 @@ n      结点，那么需要将头结点的 next 设置为数组该位置的元�
    Full GC触发条件：
    1. 调用System.gc时，系统建议执行Full GC，但是不必然执行
    2. 老年代空间不足
-   3. 方法去空间不足
-   4. 通过Minor GC后进入老年代的平均大小大于老年代的可用内存
-   5. 由Eden区、From Space区向To Space区复制时，对象大小大于To Space可
-      用内存，则把该对象转存到老年代，且老年代的可用内存小于该对象大小。
-
+      1. 通过Minor GC后进入老年代的对象大小大于老年代的可用内存
+      2. 由Eden区、From Space区向To Space区复制时，对象大小大于To
+         Space可用内存，则把该对象转存到老年代，且老年代的可用内存小于
+         该对象大小。
+   3. 方法区空间不足

@@ -1,7 +1,6 @@
 * What
-  DubboÊÇ°¢Àï°Í°ÍSOA·þÎñ»¯ÖÎÀí·½°¸µÄºËÐÄ¿ò¼Ü£¬ÊÇÒ»¸ö·Ö²¼Ê½·þÎñ¿ò¼Ü£¬ÖÂ
-  Á¦ÓÚÌá¹©¸ßÐÔÄÜºÍÍ¸Ã÷»¯µÄRPCÔ¶³Ì·þÎñµ÷ÓÃ·½°¸£¬ÒÔ¼°SOA·þÎñÖÎÀí·½°¸¡£
-* Ê¹ÓÃµÄÐ­Òé
-  Ö÷ÒªÊ¹ÓÃÐ­ÒéÓÐ: dubbo ¡¢rmi¡¢hessian¡¢http¡¢webservice¡¢thrift¡¢
-  memcached¡¢redis¡£
-
+  Dubboæ˜¯é˜¿é‡Œå·´å·´SOAæœåŠ¡åŒ–æ²»ç†æ–¹æ¡ˆçš„æ ¸å¿ƒæ¡†æž¶ï¼Œæ˜¯ä¸€ä¸ªåˆ†å¸ƒå¼æœåŠ¡æ¡†æž¶ï¼Œè‡´
+  åŠ›äºŽæä¾›é«˜æ€§èƒ½å’Œé€æ˜ŽåŒ–çš„RPCè¿œç¨‹æœåŠ¡è°ƒç”¨æ–¹æ¡ˆï¼Œä»¥åŠSOAæœåŠ¡æ²»ç†æ–¹æ¡ˆã€‚
+* ä½¿ç”¨çš„åè®®
+  ä¸»è¦ä½¿ç”¨åè®®æœ‰: dubbo ã€rmiã€hessianã€httpã€webserviceã€thriftã€
+  memcachedã€redisã€‚

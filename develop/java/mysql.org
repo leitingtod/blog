@@ -1,187 +1,181 @@
-* �޸�MySQL��ʱ�����漰����time_zone
-  1. �鿴��show variables like '%time_zone%';
-  2. �޸�
-     1. ͨ��my.cnf
-        
-        �� [mysqld] ֮�¼� default-time_zone = '+8:00'
+* 修改MySQL的时区，涉及参数time_zone
+  1. 查看：show variables like '%time_zone%';
+  2. 修改
+     1. 通过my.cnf，在 [mysqld] 之下加 default-time_zone = '+8:00'
+     2. 通过命令行在线修改，set time_zone='+8:00';
+  3. 验证时区：select now()
 
-     2. ͨ�������������޸�
-	
-	set time_zone='+8:00';
+** 参考
+   - https://blog.csdn.net/mchdba/article/details/9763521
 
-  3. ��֤ʱ����select now()
+* Mysql的四种隔离级别
+** 参考
+   - https://www.jianshu.com/p/8d735db9c2c0/
+   - https://www.jianshu.com/p/443581ddfa3c
+   - https://www.jianshu.com/p/ad9947f50ff1
+   - https://draveness.me/mysql-innodb.html
+   - https://yq.aliyun.com/ziliao/327185
+   - https://blog.csdn.net/u011866460/article/details/40618575
+   - https://dev.mysql.com/doc/refman/8.0/en/set-transaction.html
 
-  Ref: 
-  - https://blog.csdn.net/mchdba/article/details/9763521
+* 索引
+** 索引的本质
+   MySQL官方对索引的定义为：索引（Index）是帮助MySQL高效获取数据的数
+   据结构。提取句子主干，就可以得到索引的本质：索引是一种数据结构。
 
-* Mysql�����ָ��뼶��
-  Ref:
-  - https://www.jianshu.com/p/8d735db9c2c0/
-  - https://www.jianshu.com/p/443581ddfa3c
-  - https://www.jianshu.com/p/ad9947f50ff1
-  - https://draveness.me/mysql-innodb.html
-  - https://yq.aliyun.com/ziliao/327185
-  - https://blog.csdn.net/u011866460/article/details/40618575
-  - https://dev.mysql.com/doc/refman/8.0/en/set-transaction.html
+   据库查询是数据库的主要功能之一，最基本的查询算法是顺序查找（linear
+   search）时间复杂度为O(n)，显然在数据量很大时效率很低。优化的查找算
+   法如二分查找（binary search）、二叉树查找（binary tree search）等，
+   虽然查找效率提高了。但是各自对检索的数据都有要求：二分查找要求被检
+   索数据有序，而二叉树查找只能应用于二叉查找树上，但是数据本身的组织
+   结构不可能完全满足各种数据结构（例如，理论上不可能同时将两列都按顺
+   序进行组织）。
 
-* ����
-** �����ı���
-   MySQL�ٷ��������Ķ���Ϊ��������Index���ǰ���MySQL��Ч��ȡ���ݵ���
-   �ݽṹ����ȡ�������ɣ��Ϳ��Եõ������ı��ʣ�������һ�����ݽṹ��
+   所以，在数据之外，数据库系统还维护着满足特定查找算法的数据结构。这
+   些数据结构以某种方式引用（指向）数据，这样就可以在这些数据结构上实
+   现高级查找算法。这种数据结构就是索引。
 
-   �ݿ��ѯ�����ݿ����Ҫ����֮һ��������Ĳ�ѯ�㷨��˳����ң�linear
-   search��ʱ�临�Ӷ�ΪO(n)����Ȼ���������ܴ�ʱЧ�ʺܵ͡��Ż��Ĳ�����
-   ������ֲ��ң�binary search�������������ң�binary tree search���ȣ�
-   ��Ȼ����Ч������ˡ����Ǹ��ԶԼ��������ݶ���Ҫ�󣺶��ֲ���Ҫ�󱻼�
-   ���������򣬶�����������ֻ��Ӧ���ڶ���������ϣ��������ݱ�������֯
-   �ṹ��������ȫ����������ݽṹ�����磬�����ϲ�����ͬʱ�����ж���˳
-   �������֯����
+   目前大部分数据库系统及文件系统都采用B-Tree或其变种B+Tree作为索引结
+   构，在本文的下一节会结合存储器原理及计算机存取原理讨论为什么B-Tree
+   和B+Tree在被如此广泛用于索引，这一节先单纯从数据结构角度描述它们。
 
-   ���ԣ�������֮�⣬���ݿ�ϵͳ��ά���������ض������㷨�����ݽṹ����
-   Щ���ݽṹ��ĳ�ַ�ʽ���ã�ָ�����ݣ������Ϳ�������Щ���ݽṹ��ʵ
-   �ָ߼������㷨���������ݽṹ����������
+*** 为什么使用B-Tree（B+Tree）
+    上文说过，红黑树等数据结构也可以用来实现索引，但是文件系统及数据库
+    系统普遍采用B-/+Tree作为索引结构，这一节将结合计算机组成原理相关知
+    识讨论B-/+Tree作为索引的理论基础。
 
-   Ŀǰ�󲿷����ݿ�ϵͳ���ļ�ϵͳ������B-Tree�������B+Tree��Ϊ������
-   �����ڱ��ĵ���һ�ڻ��ϴ洢��ԭ�����������ȡԭ������ΪʲôB-Tree
-   ��B+Tree�ڱ���˹㷺������������һ���ȵ��������ݽṹ�Ƕ��������ǡ�
+    一般来说，索引本身也很大，不可能全部存储在内存中，因此索引往往以
+    索引文件的形式存储的磁盘上。这样的话，索引查找过程中就要产生磁盘
+    I/O消耗，相对于内存存取，I/O存取的消耗要高几个数量级，所以评价一
+    个数据结构作为索引的优劣最重要的指标就是在查找过程中磁盘I/O操作次
+    数的渐进复杂度。换句话说，索引的结构组织要尽量减少查找过程中磁盘
+    I/O的存取次数。下面先介绍内存和磁盘存取原理，然后再结合这些原理分
+    析B-/+Tree作为索引的效率。
 
-*** Ϊʲôʹ��B-Tree��B+Tree��
-    ����˵��������������ݽṹҲ��������ʵ�������������ļ�ϵͳ�����ݿ�
-    ϵͳ�ձ����B-/+Tree��Ϊ�����ṹ����һ�ڽ���ϼ�������ԭ�����֪
-    ʶ����B-/+Tree��Ϊ���������ۻ�����
+    从使用磁盘I/O次数评价索引结构的优劣性：根据B-Tree的定义，可知检索
+    一次最多需要访问h个结点。数据库系统的设计者巧妙的利用了磁盘预读原
+    理，将一个结点的大小设为等于一个页面，这样每个结点只需要一次I/O就
+    可以完全载入。为了达到这个目的，在实际实现B-Tree还需要使用如下技
+    巧：
 
-    һ����˵����������Ҳ�ܴ󣬲�����ȫ���洢���ڴ��У��������������
-    �����ļ�����ʽ�洢�Ĵ����ϡ������Ļ����������ҹ����о�Ҫ��������
-    I/O���ģ�������ڴ��ȡ��I/O��ȡ������Ҫ�߼�������������������һ
-    �����ݽṹ��Ϊ��������������Ҫ��ָ������ڲ��ҹ����д���I/O������
-    ���Ľ������Ӷȡ����仰˵�������Ľṹ��֯Ҫ�������ٲ��ҹ����д���
-    I/O�Ĵ�ȡ�����������Ƚ����ڴ�ʹ��̴�ȡԭ����Ȼ���ٽ����Щԭ����
-    ��B-/+Tree��Ϊ������Ч�ʡ�
+    每次新建结点时，直接申请一个页面的空间，这样可以保证一个结点的大
+    小等于一个页面，加之计算机存储分配都是按页对齐的，就实现了一个
+    node只需一次I/O。
 
-    ��ʹ�ô���I/O�������������ṹ�������ԣ�����B-Tree�Ķ��壬��֪����
-    һ�������Ҫ����h����㡣���ݿ�ϵͳ�����������������˴���Ԥ��ԭ
-    ������һ�����Ĵ�С��Ϊ����һ��ҳ�棬����ÿ�����ֻ��Ҫһ��I/O��
-    ������ȫ���롣Ϊ�˴ﵽ���Ŀ�ģ���ʵ��ʵ��B-Tree����Ҫʹ�����¼�
-    �ɣ�
+    B-Tree中一次检索最多需要h-1次I/O（根结点常驻内存），渐进复杂度为
+    O(h)=O(logdN)。一般实际应用中，出读d是非常大的数字，通常超过100，
+    因此h非常小。
 
-    ÿ���½����ʱ��ֱ������һ��ҳ��Ŀռ䣬�������Ա�֤һ�����Ĵ�
-    С����һ��ҳ�棬��֮������洢���䶼�ǰ�ҳ����ģ���ʵ����һ��
-    nodeֻ��һ��I/O��
+    综上所述，用B-Tree作为索引结构效率是非常高的。
 
-    B-Tree��һ�μ��������Ҫh-1��I/O������㳣פ�ڴ棩���������Ӷ�Ϊ
-    O(h)=O(logdN)��һ��ʵ��Ӧ���У�����d�Ƿǳ�������֣�ͨ������100��
-    ���h�ǳ�С��
+    而红黑树结构，h明显要深得多。由于逻辑上很近的结点（父子结点）物理
+    上可能离得很远，无法利用局部性原理。所以即使红黑树的I/O渐进复杂度
+    也为O(h)，但是查找效率明显比B-Tree差得多。
 
-    ������������B-Tree��Ϊ�����ṹЧ���Ƿǳ��ߵġ�
+    B+Tree更适合外存索引，是和内结点出度d有关。从上面分析可以看到，d
+    越大索引的性能越好，而出度的上限取决于结点内key和data的大小：
+    dmax=floor(pagesize/(keysize+datasize+pointsize))。
 
-    ��������ṹ��h����Ҫ��öࡣ�����߼��Ϻܽ��Ľ�㣨���ӽ�㣩����
-    �Ͽ�����ú�Զ���޷����þֲ���ԭ�������Լ�ʹ�������I/O�������Ӷ�
-    ҲΪO(h)�����ǲ���Ч�����Ա�B-Tree��öࡣ
+    floor表示向下取整。由于B+Tree内结点去掉了data域，因此可以拥有更大
+    的出度，拥有更好的性能。
 
-    B+Tree���ʺ�����������Ǻ��ڽ�����d�йء�������������Կ�����d
-    Խ������������Խ�ã������ȵ�����ȡ���ڽ����key��data�Ĵ�С��
-    dmax=floor(pagesize/(keysize+datasize+pointsize))��
-
-    floor��ʾ����ȡ��������B+Tree�ڽ��ȥ����data����˿���ӵ�и���
-    �ĳ��ȣ�ӵ�и��õ����ܡ�
-
-** MySQL����ʵ��
-   ��MySQL�У��������ڴ洢���漶��ĸ����ͬ�洢�����������ʵ�ַ�
-   ʽ�ǲ�ͬ�ģ�������Ҫ����MyISAM��InnoDB�����洢����(MySQL���ݿ�
-   MyISAM��InnoDB�洢����ıȽ�)������ʵ�ַ�ʽ��
+** MySQL索引实现
+   在MySQL中，索引属于存储引擎级别的概念，不同存储引擎对索引的实现方
+   式是不同的，本文主要讨论MyISAM和InnoDB两个存储引擎(MySQL数据库
+   MyISAM和InnoDB存储引擎的比较)的索引实现方式。
 
 *** MyISAM
-   MyISAM����ʹ��B+Tree��Ϊ�����ṹ��Ҷ����data���ŵ������ݼ�¼��
-   ��ַ��
+   MyISAM引擎使用B+Tree作为索引结构，叶结点的data域存放的是数据记录的
+   地址。
 
-   ���Կ���MyISAM�������ļ������������ݼ�¼�ĵ�ַ����MyISAM�У�������
-   �͸���������Secondary key���ڽṹ��û���κ�����ֻ��������Ҫ��key
-   ��Ψһ�ģ�������������key�����ظ���
+   可以看出MyISAM的索引文件仅仅保存数据记录的地址。在MyISAM中，主索引
+   和辅助索引（Secondary key）在结构上没有任何区别，只是主索引要求key
+   是唯一的，而辅助索引的key可以重复。
 
-   ��ˣ�MyISAM�������������㷨Ϊ���Ȱ���B+Tree�����㷨�������������
-   ָ����Key���ڣ���ȡ����data���ֵ��Ȼ����data���ֵΪ��ַ����ȡ��
-   Ӧ���ݼ�¼��
+   因此，MyISAM中索引检索的算法为首先按照B+Tree搜索算法搜索索引，如果
+   指定的Key存在，则取出其data域的值，然后以data域的值为地址，读取相
+   应数据记录。
 
-   MyISAM��������ʽҲ�������Ǿۼ����ģ�֮������ô�ƺ���Ϊ����InnoDB��
-   �ۼ��������֡�
+   MyISAM的索引方式也叫做“非聚集”的，之所以这么称呼是为了与InnoDB的
+   聚集索引区分。
 
 *** InnoDB
-    ��ȻInnoDBҲʹ��B+Tree��Ϊ�����ṹ��������ʵ�ַ�ʽȴ��MyISAM��Ȼ
-    ��ͬ��
+    虽然InnoDB也使用B+Tree作为索引结构，但具体实现方式却与MyISAM截然
+    不同。
 
-    ��һ���ش�������InnoDB�������ļ��������������ļ���������֪����
-    MyISAM�����ļ��������ļ��Ƿ���ģ������ļ����������ݼ�¼�ĵ�ַ��
-    ����InnoDB�У��������ļ��������ǰ�B+Tree��֯��һ�������ṹ�����
-    ����Ҷ���data�򱣴������������ݼ�¼�����������key�����ݱ���������
-    ���InnoDB�������ļ�����������������
+    第一个重大区别是InnoDB的数据文件本身就是索引文件。从上文知道，
+    MyISAM索引文件和数据文件是分离的，索引文件仅保存数据记录的地址。
+    而在InnoDB中，表数据文件本身就是按B+Tree组织的一个索引结构，这棵
+    树的叶结点data域保存了完整的数据记录。这个索引的key是数据表的主键，
+    因此InnoDB表数据文件本身就是主索引。
 
-    InnoDB�������ļ�����Ҫ�������ۼ�������InnoDBҪ�������������
-    ��MyISAM����û�У������û����ʽָ������MySQLϵͳ���Զ�ѡ��һ����
-    ��Ψһ��ʶ���ݼ�¼������Ϊ��������������������У���MySQL�Զ�Ϊ
-    InnoDB������һ�������ֶ���Ϊ����������ֶγ���Ϊ6���ֽڣ�����Ϊ��
-    ���Ρ�
+    InnoDB的数据文件本身要按主键聚集，所以InnoDB要求表必须有主键
+    （MyISAM可以没有），如果没有显式指定，则MySQL系统会自动选择一个可
+    以唯一标识数据记录的列作为主键，如果不存在这种列，则MySQL自动为
+    InnoDB表生成一个隐含字段作为主键，这个字段长度为6个字节，类型为长
+    整形。
 
-    �ڶ�����MyISAM�����Ĳ�ͬ��InnoDB�ĸ�������data��洢��Ӧ��¼����
-    ��ֵ�����ǵ�ַ�����仰˵��InnoDB�����и�������������������Ϊdata
-    ��
+    第二个与MyISAM索引的不同是InnoDB的辅助索引data域存储相应记录主键
+    的值而不是地址。换句话说，InnoDB的所有辅助索引都引用主键作为data
+    域。
 
-    �ۼ���������ʵ�ַ�ʽʹ�ð�����������ʮ�ָ�Ч�����Ǹ�������������
-    Ҫ�����������������ȼ��������������������Ȼ�����������������м�
-    ����ü�¼��
+    聚集索引这种实现方式使得按主键的搜索十分高效，但是辅助索引搜索需
+    要检索两遍索引：首先检索辅助索引获得主键，然后用主键到主索引中检
+    索获得记录。
 
-    �˽ⲻͬ�洢���������ʵ�ַ�ʽ������ȷʹ�ú��Ż��������ǳ��а�����
-    ����֪����InnoDB������ʵ�ֺ󣬾ͺ���������Ϊʲô������ʹ�ù�����
-    �ֶ���Ϊ��������Ϊ���и��������������������������������������
-    ������ù��������磬�÷ǵ������ֶ���Ϊ������InnoDB�в��Ǹ�����
-    �⣬��ΪInnoDB�����ļ�������һ��B+Tree���ǵ���������������ڲ���
-    �¼�¼ʱ�����ļ�Ϊ��ά��B+Tree�����Զ�Ƶ���ķ��ѵ�����ʮ�ֵ�Ч��
-    ��ʹ�������ֶ���Ϊ��������һ���ܺõ�ѡ��
+    了解不同存储引擎的索引实现方式对于正确使用和优化索引都非常有帮助，
+    例如知道了InnoDB的索引实现后，就很容易明白为什么不建议使用过长的
+    字段作为主键，因为所有辅助索引都引用主索引，过长的主索引会令辅助
+    索引变得过大。再例如，用非单调的字段作为主键在InnoDB中不是个好主
+    意，因为InnoDB数据文件本身是一颗B+Tree，非单调的主键会造成在插入
+    新记录时数据文件为了维持B+Tree的特性而频繁的分裂调整，十分低效，
+    而使用自增字段作为主键则是一个很好的选择。
 
-** MySQL����ʹ�ò��Լ��Ż�
-   MySQL���Ż���Ҫ��Ϊ�ṹ�Ż���Scheme optimization���Ͳ�ѯ�Ż�
-   ��Query optimization����
-   �������۵ĸ���������������Ҫ���ڽṹ�Ż����롣
+** MySQL索引使用策略及优化
+   MySQL的优化主要分为结构优化（Scheme optimization）和查询优化
+   （Query optimization）。
+   本章讨论的高性能索引策略主要属于结构优化范畴。
 
-   - ����ǰ׺ԭ��������Ż�
-   - ����ѡ������ǰ׺����
-      
-     һ����������²����齨����: 
-     1. ����¼�Ƚ��٣�����һ��ǧ������ֻ�м�������¼�ı���
-     2. ������ѡ���Խϵ͡�������ѡ���ԣ�Selectivity������ָ���ظ�����
-        ��ֵ��Ҳ�л�����Cardinality�������¼����#T���ı�ֵ����Ȼѡ��
-        �Ե�ȡֵ��ΧΪ(0, 1]��ѡ����Խ�ߵ�������ֵԽ��������B+Tree
-        �����ʾ�����      
-      
-   - InnoDB������ѡ��������Ż�
-      
-     ��ʹ��InnoDB�洢����ʱ�����û���ر����Ҫ������Զʹ��һ����ҵ��
-     �޹ص������ֶ���Ϊ������
+   - 最左前缀原理与相关优化
+   - 索引选择性与前缀索引
 
-** ����������
-   1.��ͨ����index :���ٲ���
-   2.Ψһ����
-   ����������primary key �����ٲ���+Լ������Ϊ����Ψһ��
-   Ψһ������unique�����ٲ���+Լ�� ��Ψһ��
-   3.��������
-   -primary key(id,name):������������
-   -unique(id,name):����Ψһ����
-   -index(id,name):������ͨ����
-   4.ȫ������fulltext :���������ܳ�һƪ���µ�ʱ��Ч����á�
-   5.�ռ�����spatial :�˽�ͺã���������
+     一般两种情况下不建议建索引:
+     1. 表记录比较少，例如一两千条甚至只有几百条记录的表。
+     2. 索引的选择性较低。索引的选择性（Selectivity），是指不重复的索
+	引值（也叫基数，Cardinality）与表记录数（#T）的比值。显然选择
+	性的取值范围为(0, 1]，选择性越高的索引价值越大，这是由B+Tree
+	的性质决定的
 
-** ��������������
-   hash���͵���������ѯ�����죬��Χ��ѯ��
-   btree���͵�������b+��������Խ�࣬������ָ�������������Ǿ���������ΪinnodbĬ��֧������
+   - InnoDB的主键选择与插入优化
 
-   ��ͬ�Ĵ洢����֧�ֵ���������Ҳ��һ��
-   InnoDB ֧������֧���м���������֧�� B-tree��Full-text ����������֧�� Hash ������
-   MyISAM ��֧������֧�ֱ�����������֧�� B-tree��Full-text ����������֧�� Hash ������
-   Memory ��֧������֧�ֱ�����������֧�� B-tree��Hash ����������֧�� Full-text ������
-   NDB ֧������֧���м���������֧�� Hash ��������֧�� B-tree��Full-text ��������
-   Archive ��֧������֧�ֱ�������������֧�� B-tree��Hash��Full-text ��������
+     在使用InnoDB存储引擎时，如果没有特别的需要，请永远使用一个与业务
+     无关的自增字段作为主键。
 
-* ����
-  �� test1
+** 索引引分类
+   1.普通索引index :加速查找
+   2.唯一索引
+   主键索引：primary key ：加速查找+约束（不为空且唯一）
+   唯一索引：unique：加速查找+约束 （唯一）
+   3.联合索引
+   -primary key(id,name):联合主键索引
+   -unique(id,name):联合唯一索引
+   -index(id,name):联合普通索引
+   4.全文索引fulltext :用于搜索很长一篇文章的时候，效果最好。
+   5.空间索引spatial :了解就好，几乎不用
+
+** 索引的两大类型
+   hash类型的索引：查询单条快，范围查询慢
+   btree类型的索引：b+树，层数越多，数据量指数级增长（我们就用它，因为innodb默认支持它）
+
+   不同的存储引擎支持的索引类型也不一样
+   InnoDB 支持事务，支持行级别锁定，支持 B-tree、Full-text 等索引，不支持 Hash 索引；
+   MyISAM 不支持事务，支持表级别锁定，支持 B-tree、Full-text 等索引，不支持 Hash 索引；
+   Memory 不支持事务，支持表级别锁定，支持 B-tree、Hash 等索引，不支持 Full-text 索引；
+   NDB 支持事务，支持行级别锁定，支持 Hash 索引，不支持 B-tree、Full-text 等索引；
+   Archive 不支持事务，支持表级别锁定，不支持 B-tree、Hash、Full-text 等索引；
+
+* 连接
+  表 test1
   |----+-------+-------|
   | id | name  | class |
   |----+-------+-------|
@@ -190,7 +184,7 @@
   |  3 | dsf   | ww    |
   |----+-------+-------|
 
-  �� test2
+  表 test2
   |----+------+-------|
   | id | name | class |
   |----+------+-------|
@@ -199,9 +193,9 @@
   |  4 | df   | vvv   |
   |----+------+-------|
 
-  1. ������: inner join on, �����������Ľ�����
-     #+begin_src sql 
-     select * from test1 a,test2 b where a.id=b.id; 
+  1. 内连接: inner join on, 返回两个表的交集。
+     #+begin_src sql
+     select * from test1 a,test2 b where a.id=b.id;
      select * from test1 a inner join test2 b on a.id=b.id;
      #+end_src
      |----+------+-------+----+------+-------|
@@ -211,13 +205,13 @@
      |  3 | dsf  | ww    |  3 | 45   | fe    |
      |----+------+-------+----+------+-------|
 
-           
-  2. ������(����������): left join on/left join outer on
 
-     ���(a_table)�ļ�¼����ȫ����ʾ���������ұ�(b_table)ֻ����ʾ��
-     �����������ļ�¼���ұ���¼����ĵط���ΪNULL��
+  2. 左连接(或左外连接): left join on/left join outer on
 
-     #+begin_src sql 
+     左表(a_table)的记录将会全部表示出来，而右表(b_table)只会显示符
+     合搜索条件的记录。右表记录不足的地方均为NULL。
+
+     #+begin_src sql
      select * from test1 a left join test2 b on a.id=b.id;
      #+end_src
 
@@ -230,13 +224,13 @@
      |----+-------+-------+------+------+-------|
 
 
-  3. ������(ȫ����������): right join on/right outer join on
+  3. 右连接(全称右外连接): right join on/right outer join on
 
-     ����(��)�����෴����(��)���ӣ����(a_table)ֻ����ʾ������������
-     �ļ�¼�����ұ�(b_table)�ļ�¼����ȫ����ʾ�����������¼����ĵ�
-     ����ΪNULL��
+     与左(外)连接相反，右(外)连接，左表(a_table)只会显示符合搜索条件
+     的记录，而右表(b_table)的记录将会全部表示出来。左表记录不足的地
+     方均为NULL。
 
-     #+begin_src sql 
+     #+begin_src sql
      select * from test1 a right join test2 b on a.id=b.id;
      #+end_src
 
@@ -248,15 +242,15 @@
      | NULL | NULL | NULL  |  4 | df   | vvv   |
      |------+------+-------+----+------+-------|
 
-      
-      
-  4. ȫ����(ȫ��ȫ������): full outer join on
 
-     �����������Ĳ�����mysql��֧��ȫ���ӣ�����ʹ��union������ͬЧ����
 
-     #+begin_src sql 
-     select * from test1 a left join test2 b on a.id=b.id 
-     union  
+  4. 全连接(全称全外连接): full outer join on
+
+     返回两个表的并集。mysql不支持全连接，可以使用union产生相同效果。
+
+     #+begin_src sql
+     select * from test1 a left join test2 b on a.id=b.id
+     union
      select * from test1 a right join test2 b on a.id=b.id;
      #+end_src
      |------+-------+-------+------+------+-------|
@@ -268,9 +262,9 @@
      | NULL | NULL  | NULL  |    4 | df   | vvv   |
      |------+-------+-------+------+------+-------|
 
-     #+begin_src sql 
-     select * from test1 a left join test2 b on a.id=b.id 
-     union all 
+     #+begin_src sql
+     select * from test1 a left join test2 b on a.id=b.id
+     union all
      select * from test1 a right join test2 b on a.id=b.id;
      #+end_src
      |------+-------+-------+------+------+-------|
@@ -284,151 +278,259 @@
      | NULL | NULL  | NULL  |    4 | df   | vvv   |
      |------+-------+-------+------+------+-------|
 
-** Mysql���ϲ�ѯunion��union all��ʹ��
-   UNION ���ںϲ��������� SELECT ���Ľ����������ȥ�����κ��ظ��С�
-   UNION �ڲ��� SELECT ������ӵ����ͬ�������У���Ҳ����ӵ�����Ƶ��������͡�
-   ͬʱ��ÿ�� SELECT ����е��е�˳�������ͬ.
+** Mysql联合查询union和union all的使用
+   UNION 用于合并两个或多个 SELECT 语句的结果集，并消去表中任何重复行。
+   UNION 内部的 SELECT 语句必须拥有相同数量的列，列也必须拥有相似的数据类型。
+   同时，每条 SELECT 语句中的列的顺序必须相同.
 
-   ��������ظ���ֵ����ʹ�� UNION ALL���� ALL �� UNION һ��ʹ��ʱ����
-   UNION ALL�����������ظ��С�
-   
-** MySQL���ִ�й�����ѯ
-   MySQL��Ϊ�κ�һ����ѯ����һ�Ρ�������������������һ����ѯ��Ҫ������
-   ��ƥ��Žй�����������MySQL�У�ÿһ����ѯ��ÿһ��Ƭ�Σ������Ӳ�ѯ��
-   �������ڵ�����ѯ����������һ�ι�����
+   如果允许重复的值，请使用 UNION ALL。当 ALL 随 UNION 一起使用时（即
+   UNION ALL），不消除重复行。
 
-   ��ǰMySQL����ִ�еĲ��Ժܼ򵥣�MySQL���κι�����ִ��Ƕ��ѭ��������
-   ������MySQL����һ������ѭ��ȡ���������ݣ�Ȼ����Ƕ��ѭ������һ������
-   Ѱ��ƥ����У�������ȥ��ֱ���ҵ����б���ƥ�����Ϊֹ��Ȼ����ݸ���
-   ��ƥ����У����ز�ѯ����Ҫ�ĸ����С�
+** MySQL如何执行关联查询
+   MySQL认为任何一个查询都是一次“关联”，并不仅仅是一个查询需要到两个
+   表匹配才叫关联，所以在MySQL中，每一个查询，每一个片段（包括子查询，
+   甚至基于单表查询）都可以是一次关联。
 
-* ��־
-  ���ͣ�
-  - ��������־
-  - ������־
-  - ͨ����־
-  - ������־
-  - �ع���־
-     
-** ��������־��ʽ��
-   - STATEMENT����¼�˲�����sql��䡣
-     - �ŵ㣺��־��¼����Խ�С����Լ���̼�����I/O,ֻ����һ����¼�޸�
-       �� ����ROW��ʽ����������С�ڶβ�������־����
-     
-     - ȱ�㣺
-       - �����¼��������Ϣ����֤����ڴӷ������ϵ�ִ�н������������
-         �� ����ͬ��
-       - �ض�������UUID,USER()������ȷ���Եĺ����޷����ơ��������
-         mysql ���Ƶ��������������ݲ�һ�£��Ӷ��жϸ�����·��
+   当前MySQL关联执行的策略很简单：MySQL对任何关联都执行嵌套循环关联操
+   作，即MySQL先在一个表中循环取出单条数据，然后在嵌套循环到下一个表中
+   寻找匹配的行，依次下去，直到找到所有表中匹配的行为止。然后根据各个
+   表匹配的行，返回查询中需要的各个列。
+
+* 日志
+  类型：
+  - 二进制日志
+  - 慢查日志
+  - 通用日志
+  - 重做日志
+  - 回滚日志
+
+** 二进制日志格式：
+   - STATEMENT：记录了操作的sql语句。
+     - 优点：日志记录量相对较小，节约磁盘及网络I/O,只对以一条记录修改
+       或 插入ROW格式所产生日量小于段产生的日志量。
+
+     - 缺点：
+       - 必须记录上下文信息，保证语句在从服务器上的执行结果和在主服务
+	 器 上相同。
+       - 特定函数如UUID,USER()这样非确定性的函数无法复制。可能造成
+	 mysql 复制的主备服务器数据不一致，从而中断复制链路。
    - ROW
-     - �ŵ�: row��ʽ���Ա���MYSQL�����г������Ӳ�һ�µ����⣬�ٷ��Ƽ�
-       ���ָ�ʽ��
+     - 优点: row格式可以避免MYSQL复制中出现主从不一致的问题，官方推荐
+       这种格式。
 
-       ͬһ��sql����޸���10000�����ݵ�����¡����ڶε���־ֻ���¼��
-       ��SQL��䡣�����е���־����10000����¼���ֱ��¼ÿһ�����ݵ���
-       �ġ�
+       同一个sql语句修改了10000条数据的情况下。基于段的日志只会记录这
+       个SQL语句。基于行的日志会有10000条记录，分别记录每一行数据的修
+       改。
 
-       1. ��mysql���Ӹ��Ƹ��Ӱ�ȫ��
-       2. ��ÿһ�������޸ıȻ��ڶεĸ��Ƹ�Ч��
- 
-       ���������޸������ݿ��е����ݣ�ͬʱû�б��ݿ��Իָ�ʱ�����Ǿ�
-       ����ͨ��������������־������־�м�¼�������޸Ĳ�������������
-       ��ʽ���ﵽ�ָ����ݵ�Ŀ�ġ�
+       1. 是mysql主从复制更加安全。
+       2. 对每一行数据修改比基于段的复制高效。
 
-     - ȱ��: ��¼��־���ϴ�
-   - full: ��¼�е������޸�
-   - minimal: ֻ��¼�޸ĵ��С�
-   - noblob: �����text���ͻ�clob�ֶΣ�����¼ ��Щ��־��
-   - MIXED: ����sql�����ϵͳ�����ڼ�¼�˺ͻ����е���־��ʽ�н���ѡ��
-     ��������С����ִ�е�SQL������
+       如果误操作修改了数据库中的数据，同时没有备份可以恢复时，我们就
+       可以通过分析二进制日志，对日志中记录的数据修改操作做反向处理的
+       方式来达到恢复数据的目的。
 
-* ���Ʒ�ʽ
-  - ����SQL���ĸ��ƣ�SBR)
-    - �ŵ㣺
-      - ������־���٣���Լ���紫���ID.
-      - ����Ҫ����������ݿ�ı�������ȫ��ͬ��
-      - ����ڻ����еĸ��Ʒ�ʽ��Ϊ��
-    - ȱ�㣺
-      - ���ڷ�ȷ���¼����޷���֤���Ӹ������ݵ�һ���ԡ�
-      - ���ڴ洢���̣�������
-  - �����еĸ���(RBR)
-    - �ŵ㣺
-      - ����Ӧ�����κ�SQL�ĸ��ư�����ȷ���Ժ������洢���̵ȡ�
-      - ���Լ������ݿ�����ʹ�á�
-    - ȱ�㣺
-      Ҫ���������ݿ�ı��ṹ��ͬ������ͻ��жϸ��ơ�
+     - 缺点: 记录日志量较大
+   - full: 记录列的所有修改
+   - minimal: 只记录修改的列。
+   - noblob: 如果是text类型或clob字段，不记录 这些日志。
+   - MIXED: 根据sql语句由系统决定在记录端和基于行的日志格式中进行选择。
+     数据量大小由所执行的SQL决定。
+
+** 重做日志
+*** 写入过程
+    1. 重做日志信息 先写入 重做日志缓冲 再按一定条件顺序写入重做日志文
+       件！
+    2. redo log buffer 向 redo log file 写，是按512个字节，也就是一个扇
+       区的大小进行写入。扇区是写入的最小单位，一定能写入成功，因此过程
+       中不需要double write.
+
+*** 将重做日志缓冲中的内容刷新到外部磁盘的重做日志文件中的时机
+    - Master Thread 每一秒将重做日志缓冲刷新到重做日志文件；
+    - 每个事务提交时会将重做日志缓冲刷新到重做日志文件；
+    - 当重做日志缓冲池剩余空间小于1/2时，重做日志缓冲刷新到重做日志文件
+
+*** 重做日志和二进制日志的对比
+    1. 类别
+       - 二进制日志：记录MySQL数据库相关的日志记录，包括InnoDB，MyISAM
+	 等其它存储引擎的日志。
+       - 重做日志：只记录InnoDB存储引擎本身的事务日志。
+    2. 内容
+       - 二进制日志：记录事务的具体操作内容，是逻辑日志。
+       - 重做日志：记录每个页的更改的物理情况。
+    3. 时间
+       - 二进制日志：只在事务提交完成后进行写入，只写磁盘一次，不论这时
+	 事务量多大。
+       - 重做日志：在事务进行中，就不断有重做日志条目(redo entry)写入重
+	 做日志文件。
+
+** 回滚日志
+   undo日志用于存放数据修改被修改前的值，假设修改 tba 表中 id=2的行数
+   据，把Name='B' 修改为Name = 'B2' ，那么undo日志就会用来存放Name='B'
+   的记录，如果这个修改出现异常，可以使用undo日志来实现回滚操作，保证
+   事务的一致性。对数据的变更操作，主要来自 INSERT UPDATE DELETE，而
+   UNDO LOG中分为两种类型，一种是 INSERT_UNDO（INSERT操作），记录插入
+   的唯一键值；一种是 UPDATE_UNDO（包含UPDATE及DELETE操作），记录修改
+   的唯一键值以及old column记录。
+
+   Undo log是MySQL Innodb引擎的日志的一种，记录了老版本的数据。
+   Undo log是Innodb MVCC重要组成部分，InnoDB的MVCC就是基于Undo log实现的。
+
+   在Innodb当中，INSERT操作在事务提交前只对当前事务可见，Undo log在事
+   务提交后即会被删除，因为新插入的数据没有历史版本，所以无需维护Undo
+   log。而对于UPDATE、DELETE，责需要维护多版本信息。
+
+   在InnoDB当中，UPDATE和DELETE操作产生的Undo log都属于同一类型：
+   update_undo。（update可以视为insert新数据到原位置，delete旧数据，
+   undo log暂时保留旧数据）
+
+   Undo log的作用
+   有了MVCC，InnoDB就能实现一致性非锁定读。
+
+** 参考
+   - https://www.cnblogs.com/f-ck-need-u/archive/2018/05/08/9010872.html
+   - https://blog.csdn.net/lpx_cn/article/details/53737165
+   - https://www.cnblogs.com/wyy123/p/7880077.html
+   - https://www.cnblogs.com/cuisi/p/6525077.html
+
+* 复制方式
+  - 基于SQL语句的复制（SBR)
+    - 优点：
+      - 生成日志量少，节约网络传输的ID.
+      - 并不要求对主从数据库的表定义完全相同。
+      - 相比于基于行的复制方式更为灵活。
+    - 缺点：
+      - 对于非确定事件，无法保证主从复制数据的一致性。
+      - 对于存储过程，触发器
+  - 基于行的复制(RBR)
+    - 优点：
+      - 可以应用于任何SQL的复制包括非确定性函数，存储过程等。
+      - 可以减少数据库锁的使用。
+    - 缺点：
+      要求主从数据库的表结构相同，否则就会中断复制。
 
 
-  ���ƹ�����ʽ:
-  1. �������������д���������־��
-  2. �Ӷ�ȡ���Ķ�������־�����д�뵽relay_log�С�
-     - ������־��ĸ���
-     - ����GTID�ĸ���
-  3. �ڴ����ط�relay_log�е���־��
-     - ����SQL�˵���־���ڴӿ�������ִ�м�¼��SQL��
-     - �����е���־�����ڴӿ���ֱ��Ӧ�ö������е��޸ġ�
+  复制工作方式:
+  1. 主服务器将变更写入二进制日志。
+  2. 从读取主的二进制日志变更并写入到relay_log中。
+     - 基于日志点的复制
+     - 基于GTID的复制
+  3. 在从上重放relay_log中的日志。
+     - 基于SQL端的日志是在从库上重新执行记录的SQL。
+     - 基于行的日志则是在从库上直接应用对数据行的修改。
 
-* �ֿ�ֱ�
-  1. ���ȿ��ǻ��潵�Ͷ����ݿ�Ķ�������
-  2. �ٿ��Ƕ�д���룬�������ݿ�д������
-  3. ���ʼ���ݲ��,�з�ģʽ�� ���ȴ�ֱ�����򣩲�֡��ٴ�ˮƽ��֡�
-  4. ���ȿ��ǰ���ҵ��ֱ��֡�
-  5. �ٿ���ˮƽ��֣��ȷֿ�(��������·�ɹ��򣬰����ݷ��䵽��ͬ�Ŀ���)
-  6. ����ٿ��Ƿֱ���������ֵ�����1000�����ڡ�
+* 分库分表
+  阿里规约：单表行数超过 500 万行或者单表容量超过 2GB，才推荐进行分库分表。
 
-  Ref:
-  - https://blog.csdn.net/jerome_s/article/details/52492616
-  - https://blog.csdn.net/dinglang_2009/article/details/53195835
-  - https://www.2cto.com/database/201805/745791.html
-  - https://yq.aliyun.com/ziliao/385668
-  - https://baijiahao.baidu.com/s?id=1607944199335196177&wfr=spider&for=pc
-  - https://blog.csdn.net/qq_18145031/article/details/77867853
-  - https://blog.csdn.net/qb170217/article/details/84098876
+  1. 优先考虑缓存降低对数据库的读操作。
+  2. 再考虑读写分离，降低数据库写操作。
+  3. 最后开始数据拆分,切分模式： 首先垂直（纵向）拆分、再次水平拆分。
+  4. 首先考虑按照业务垂直拆分。
+  5. 再考虑水平拆分：先分库(设置数据路由规则，把数据分配到不同的库中)
+  6. 最后再考虑分表，单表拆分到数据1000万以内。
 
-* ��⣨���������join
-  ���ƣ�
-  1. ���ؽṹ�ֶο�����Զ�̱��Ĳ����ֶΣ��ֶα�����ͬ
-  2. ��֧������
-  3. ��֧�ֱ��ṹ�޸�
-     
-  ������
-  1. ���ã�my.conf�е� [mysqld]������ federated
+** 参考
+   - https://blog.csdn.net/jerome_s/article/details/52492616
+   - https://blog.csdn.net/dinglang_2009/article/details/53195835
+   - https://www.2cto.com/database/201805/745791.html
+   - https://yq.aliyun.com/ziliao/385668
+   - https://baijiahao.baidu.com/s?id=1607944199335196177&wfr=spider&for=pc
+   - https://blog.csdn.net/qq_18145031/article/details/77867853
+   - https://blog.csdn.net/qb170217/article/details/84098876
 
-  2. ��½mariadb��ִ��install plugin federated soname
+* 跨库（包括跨机）join
+  限制：
+  1. 本地结构字段可以是远程表的部分字段，字段必须相同
+  2. 不支持事务
+  3. 不支持表结构修改
+
+  操作：
+  1. 配置：my.conf中的 [mysqld]中添加 federated
+
+  2. 登陆mariadb，执行install plugin federated soname
      'ha_federatedx.so';
-  3. �鿴��show engines;
-  4. �������ӱ���
+  3. 查看：show engines;
+  4. 建立链接表：
 
      create table xxx(...) ENGINE=FEDERATED CONNECTION='mysql://[name]:[password]@[location]:[port]/[dbname]/[tablename]'
 
-  5. ���±������ӱ���
+  5. 更新本地链接表：
 
      update [tablename] set school_name='langfang' where id='1'
 
-     �Ա��ؽ��и��²��������غ�Զ�����ݿⶼ�ı��ˡ�
-     
-  6. �����ֶΣ�federated�洢���治֧��alter table������
+     对本地进行更新操作，本地和远程数据库都改变了。
 
-  7. ɾ������ɾ�����ر���Զ�̱���Ӱ�졣
+  6. 增加字段：federated存储引擎不支持alter table操作。
 
+  7. 删除表：删除本地表对远程表无影响。
+
+
+** 参考
+   - https://blog.csdn.net/jerome_s/article/details/52492616
+   - https://blog.csdn.net/kisscatforever/article/details/78974576
+
+* MySQL单台物理机上单实例多库与多实例单库性能测试
+** 参考
+   - https://blog.csdn.net/thundermeng/article/details/51791767
+   - https://blog.csdn.net/hylongsuny/article/details/7892488
+
+* 事务
+** 参考
+   - https://blog.csdn.net/shunfa888/article/details/80213528
+
+* group by
+  | id | num |
+  |  1 |   1 |
+  |  2 |   1 |
+  |  3 |   1 |
+  |  4 |   2 |
+  |  5 |   1 |
+  |  6 |   2 |
+  |  7 |   2 |
+
+
+  select id from table group by num 返回的结果中 id 单元格是有多个值的，
+  但关系数据库不允许单元格有多个值，因此查询会失败，可用聚合函数来将多
+  个输入值转换成一个值。
+
+  delete from logs where id not in (select id from (select min(id) as id from logs group by Num) t);
+
+  其中 select id from (select min(id) as id from logs group by Num) t)
+  外面再加一层 select 是因为 mysql中，不能先select一个表的记录，在按此
+  条件进行更新和删除同一个表的记录。 所以 重新select一遍
+
+  #+begin_src sql
+  # 获取分组后每组中的salary最大的那一行
+  select a.name, a.salary, a.department_id from employee_department a
+  where a.salary=(select max(e.salary) from employee_department e where a.department_id=e.department_id)
+  #+end_src
 
   Ref:
-  - https://blog.csdn.net/jerome_s/article/details/52492616
-  - https://blog.csdn.net/kisscatforever/article/details/78974576
-     
-* MySQL��̨�������ϵ�ʵ��������ʵ���������ܲ���     
+  - https://blog.csdn.net/hao1066821456/article/details/69556644
 
-  Ref:
-  - https://blog.csdn.net/thundermeng/article/details/51791767
-  - https://blog.csdn.net/hylongsuny/article/details/7892488
+* 关于MySQL数据类型定义的几个细节：
+  1. INT(N)中，这个N表示啥？如：INT（2）和INT（11）有什么区别？
 
-* ����
-  Ref:
-  - https://blog.csdn.net/shunfa888/article/details/80213528
-* 20+��MySQL�����Ż�����Ѿ���
-  Ref:
-  - https://blog.csdn.net/kaka1121/article/details/53395587
-* �ο�
+     Mysql可以指定类型的宽度，比如int(10), 对大多数应用这是没有意义的。
+     因为，这不会限制值得合法范围，只是规定了Mysql的一些交互工具（例如
+     Mysql命令行客户端）的显示字符的个数。
+
+  2. VARCHAR（N）这个N表示啥？既然VARCHAR是可变长度的，VARCHAR(2)和
+     VARCHAR(200)是不是一样？如果不一样区别在哪儿？
+
+     N代表字宽，占用的存储空间。
+
+  3. DECIMAL（M,N）中的M和N又表示啥？如果定义字段类型为DECIMAL（10,2），
+     那么当插入数据3.2455时，实际插入的值是什么？
+
+     decimal用于存储精确类型的小数，比如财务数据。对于decimal列可以指
+     定小数点前后所允许的最大位数。这会影响到空间的消耗。例如
+     decimal（18，9），，允许小数点两边各存储9位数字。
+
+* 20+条MySQL性能优化的最佳经验
+** 参考
+   - https://blog.csdn.net/kaka1121/article/details/53395587
+
+* 参考
   - https://blog.csdn.net/plg17/article/details/78758593
   - https://blog.csdn.net/u013061183/article/details/75356149
   - https://www.cnblogs.com/wangyayun/p/6133540.html

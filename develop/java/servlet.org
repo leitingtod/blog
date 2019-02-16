@@ -54,7 +54,7 @@
    Servlet，从而保证 service 方法能在一个特定时间点处理多线程并发执行。
 
    Servlet 默认是线程不安全的，需要开发人员处理多线程问题。
-   
+
    通常 Web 容器对于并发请求将使用同一个 servlet 处理，并且在不同的线
    程中并发执行 service 方法。
 
@@ -91,7 +91,7 @@
   周期可以通过 javax.servlet.Servlet 接口中的 init、service 和 destroy
   这些 API 来表示，所有 Servlet 必须直接或间接的实现 GenericServlet 或
   HttpServlet 抽象类。
-  
+
 ** 加载和实例化
    Servlet 容器负责加载和实例化 Servlet。加载和实例化可以发生在容器启
    动时，或者延迟初始化直到容器决定有请求需要处理时。
@@ -99,7 +99,7 @@
    当 Servlet 引擎启动后，servlet 容器必须定位所需要的 Servlet 类。
    Servlet 容器使用普通的 Java 类加载设施加载 Servlet 类。可以从本地文
    件系统或远程文件系统或者其他网络服务加载。
-   
+
    加载完 Servlet 类后，容器就可以实例化它并使用了。
 
 ** 初始化
@@ -126,7 +126,7 @@
     在创建和初始化一个新的 servlet 实例之前必须等待一段时间。
 
 ** 请求处理
-   
+
 *** 多线程问题
     servlet 容器可以并发的发送多个请求到 servlet 的 service 方法。为了
     处理这些请求，Servlet 开发者必须为 service 方法的多线程并发处理做
@@ -217,13 +217,13 @@
 
     Servlet 过滤器仅处理初始的 HTTP 请求和响应，然后它们将不会再参与到
     后续的通信中。换句话说，一旦请求被升级，它们将不会被调用。
-    
+
     HttpUpgradeHandler 可以使用非阻塞 IO（non blocking IO）消费和生产
     消息。
-    
+
     当处理 HTTP 升级时，开发人员负责线程安全的访问 ServletInputStream
     和 ServletOutputStream。
-    
+
     当升级处理已经完成，将调用 HttpUpgradeHandler.destroy 方法
 
 ** 服务的终止
@@ -269,7 +269,7 @@
    每一个部署到容器的 Web 应用都有一个 ServletContext 接口的实例与之关
    联。在容器分布在多台虚拟机的情况下，每个 JVM 的每个 Web 应用将有一
    个 ServletContext 实例。
-   
+
    如果容器内的 Servlet 没有部署到 Web 应用中，则隐含的作为“默认”
    Web 应用的一部分，并有一个默认的 ServletContext 。在分布式的容器中，
    默认的 ServletContext 是非分布式的且仅存在于一个 JVM 中。
@@ -311,7 +311,7 @@
    过滤器是一种代码重用的技术，它可以转换 HTTP 请求的内容，响应，及头
    信息。过滤器通常不产生响应或像 servlet 那样对请求作出响应，而是修改
    或调整到资源的请求，修改或调整来自资源的响应。
- 
+
    过滤器可以作用于动态或静态内容。这章说的动态和静态内容指的是 Web 资
    源。
 
@@ -350,12 +350,12 @@
     如果 web 应用为其会话跟踪 cookie 配置了一个自定义的名字，则如果会话
     id 编码到 URL 中那么相同的自定义名字也将用于 URI 参数的名字（假如
     URL 重写已开启）。
-   
+
 *** SSL会话
     安全套接字层(Secure Sockets Layer)，在 HTTPS 使用的加密技术，有一种
     内置机制允许多个来自客户端的请求被明确识别为同一会话。Servlet容器可
     以很容易地使用该数据来定义会话。
-   
+
 *** URL 重写
     URL 重写是会话跟踪的最低标准。当客户端不接受 cookie 时，服务器可使
     用 URL 重写作为会话跟踪的基础。URL 重写涉及添加数据、会话 ID、容器
@@ -422,7 +422,7 @@
    在 Web 服务器中 Web 应用程序的根目录是一个特定的路径。例如，一个
    catalog应用，可以位于 http://www.mycorp.com/catalog。以这个前缀开始
    的所有请求将被路由到代表 catalog 应用的 ServletContext 环境中。
-   
+
    servlet 容器能够制定Web应用程序自动生成的规则。例如，一个~user/映射
    可用于映射到一个基于/home /user/public_html/ 的 Web 应用。
 
