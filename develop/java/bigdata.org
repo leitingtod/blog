@@ -1,3 +1,561 @@
-* 寮曠敤
-  - https://blog.csdn.net/hitxueliang/article/details/52153476
-  - https://yq.aliyun.com/ziliao/361542
+* 背景
+  大数据本质也是数据，但有了新的特征：来源广、格式多样、数据量大、增长
+  速度快等特征。
+
+  大数据的4V特征：
+  1. 数据量大，TB->PB
+  2. 数据类型繁多，结构化、非结构化文本、日志、视频、图片、地理位置等；
+  3. 商业价值高，但是这种价值需要在海量数据之上，通过数据分析与机器学
+     习更快速的挖掘出来；
+  4. 处理时效性高，海量数据的处理需求不再局限在离线计算当中。
+
+  针对这些特征，需要考虑以下问题：
+  1. 数据来源广，如何采集汇总，出现了 Sqoop, Cammel, DataX等工具
+  2. 数据采集之后，如何存储，出现了GFS、HDFS、TFS等分布式文件存储系统
+  3. 由于增长快，数据存储必须可以水平扩展
+  4. 数据存储之后，如何快速转换成一致的格式，如何快速运算出自己想要的
+     结果，出现了MapReduce, Storm等运算框架
+  5. 进而，Lambda, Kappa架构的出现，又提供了一种业务处理的通用架构
+  6. 为了提高工作效率，出现了一些辅助工具，如 Oozie, Zepplin, Kylin等
+
+  为了应对大数据的这几个特点，开源的大数据框架越来越多，越来越强，先列
+  举一些常见的：
+  - 文件存储：Hadoop HDFS、Tachyon、KFS
+  - 离线计算：Hadoop MapReduce、Spark
+  - 流式、实时计算：Storm、Spark Streaming、S4、Heron
+  - K-V、NOSQL数据库：HBase、Redis、MongoDB
+  - 资源管理：YARN、Mesos
+  - 日志收集：Flume、Scribe、Logstash、Kibana
+  - 消息系统：Kafka、StormMQ、ZeroMQ、RabbitMQ
+  - 查询分析：Hive、Impala、Pig、Presto、Phoenix、SparkSQL、Drill、Flink、Kylin、Druid
+  - 分布式协调服务：Zookeeper
+  - 集群管理与监控：Ambari、Ganglia、Nagios、Cloudera Manager
+  - 数据挖掘、机器学习：Mahout、Spark MLLib
+  - 数据同步：Sqoop
+  - 任务调度：Oozie
+
+** 大数据工程师的技能要求
+   1. 日志收集：Flume
+   2. 流式计算：Storm/JStorm, Spark Streaming
+   3. Hadoop Family：zookeeper, hbase, hue, sqoop, oozie
+   4. 大数据通用处理平台：Hadoop, Spark
+   5. 分布式数据存储：HDFS
+   6. 资源调度：Yarn, Mesos
+   7. 数据分析/数据仓库：Hive, SparkSQL, Pig, Kylin
+   8. 消息队列：Kafka, RabbitMQ
+   9. 机器学习：Mahout, MLLib
+
+*** 必备技能
+    1. Java
+    2. Linux
+    3. Hadoop(HDFS+MapReduce+Yarn+Zookeeper)
+    4. HBase
+    5. Hive
+    6. Kafka
+    7. Strom/JStorm
+    8. Python/Scala
+    9. Spark(Core+SparkSQL+SparkStreaming), Flink/Blink
+    10. Sqoop/Flume/Oozie/Hue等
+
+*** 高阶技能
+    1. 机器学习算法及mahout加MLlib
+    2. R语言
+    3. Lambda, Kappa架构
+    4. Kylin
+    5. Alluxio
+
+** 大数据计算模式及其代表作品
+   | 大数据计算模式 | 解决的问题                     | 代表产品                            |
+   | 批处理计算     | 针对大规模数据的批处理         | MapReduce, Spark ...                |
+   | 流计算         | 针对流数据的实时计算           | Storm, Flume, Streams ...           |
+   | 图计算         | 针对大规模图结构数据的处理     | Pregel, GraphX, GoldenOrb ...       |
+   | 查询分析计算   | 大规模数据的存储管理和查询分析 | Dremel, Hive, Cassandra, Impala ... |
+
+** 参考
+   - https://www.jianshu.com/p/34ec406eb40d
+   - https://blog.csdn.net/sinat_33518009/article/details/79434177
+   - https://blog.csdn.net/hitxueliang/article/details/52153476
+   - http://www.aboutyun.com/thread-23278-1-1.html
+   - https://blog.csdn.net/u011495642/article/details/79958444
+   - https://blog.csdn.net/kan2281123066/article/details/81260198
+
+* Zookeeper
+  ZooKeeper是一种为分布式应用所设计的高可用、高性能且一致的开源协调服
+  务，它提供了一项基本服务：分布式锁服务。由于ZooKeeper的开源特性，后
+  来我们的开发者在分布式锁的基础上，摸索了出了其他的使用方法：配置维护、
+  组服务、分布式消息队列、分布式通知/协调等。
+  
+  分布式协调技术主要用来解决分布式环境当中多个进程之间的同步控制，让他
+  们有序的去访问某种临界资源，防止造成"脏数据"的后果。
+
+  Zookeeper做了什么？
+  - 命名服务
+  - 配置管理
+  - 集群管理
+  - 分布式锁
+  - 队列管理
+
+** 数据模型 Znode
+   ZooKeeper拥有一个层次的命名空间，这个和标准的文件系统非常相似。
+   ZooKeeper树中的每个节点被称为—Znode，ZooKeeper树中的每个节点可以拥
+   有子节点。
+
+** 时间
+   ZooKeeper有多种记录时间的形式，其中包含以下几个主要属性：
+   - Zxid
+     
+     致使ZooKeeper节点状态改变的每一个操作都将使节点接收到一个Zxid格式
+     的时间戳，并且这个时间戳全局有序。也就是说，也就是说，每个对 节点
+     的改变都将产生一个唯一的Zxid。
+
+** 操作
+   - create: 创建 Znode（父 Znode必须存在）
+   - delete: 删除 Znode（此node不能有子结点）
+   - exist: 测试 Znode 是否存在
+   - getACL/setACL
+   - getChildren
+   - getData/setData
+   - sync: 使客户端的 Znode 视图与服务器同步
+
+   
+   更新ZooKeeper操作是有限制的。delete或setData必须明确要更新的Znode的
+   版本号，我们可以调用exists找到。如果版本号不匹配，更新将会失败。
+
+   更新ZooKeeper操作是非阻塞式的。因此客户端如果失去了一个更新(由于另
+   一个进程在同时更新这个Znode)，他可以在不阻塞其他进程执行的情况下，
+   选择重新尝试或进行其他操作。
+   
+** Watch触发器
+   ZooKeeper可以为所有的读操作设置watch，这些读操作包括：exists()、
+   getChildren()及getData()。watch事件是一次性的触发器，当watch的对象
+   状态发生改变时，将会触发此对象上watch所对应的事件。watch事件将被异
+   步地发送给客户端，并且ZooKeeper为watch机制提供了有序的一致性保证。
+   理论上，客户端接收watch事件的时间要快于其看到watch对象状态变化的时
+   间。
+
+** ZooKeeper应用举例　
+*** 分布式锁应用场景
+    在分布式锁服务中，有一种最典型应用场景，就是通过对集群进行Master选
+    举，来解决分布式系统中的单点故障。什么是分布式系统中的单点故障：通
+    常分布式系统采用主从模式，就是一个主控机连接多个处理节点。主节点负
+    责分发任务，从节点负责处理任务，当我们的主节点发生故障时，那么整个
+    系统就都瘫痪了，那么我们把这种故障叫作单点故障。
+    
+**** 传统解决方案
+     传统方式是采用一个备用节点，这个备用节点定期给当前主节点发送ping
+     包，主节点收到ping包以后向备用节点发送回复Ack，当备用节点收到回复
+     的时候就会认为当前主节点还活着，让他继续提供服务。
+
+     当主节点挂了，这时候备用节点收不到回复了，然后他就认为主节点挂了
+     接替他成为主节点。
+
+     但是这种方式就是有一个隐患，就是网络问题。也就是说我们的主节点的
+     并没有挂，只是在回复的时候网络发生故障，这样我们的备用节点同样收
+     不到回复，就会认为主节点挂了，然后备用节点将他的Master实例启动起
+     来，这样我们的分布式系统当中就有了两个主节点
+
+     为了防止出现这种情况，我们引入了 ZooKeeper，它虽然不能避免网络故
+     障，但它能够保证每时每刻只有一个Master。
+
+     
+**** ZooKeeper解决方案
+     在引入了Zookeeper以后我们启动了两个主节点，"主节点-A"和"主节点-B"
+     他们启动以后，都向ZooKeeper去注册一个节点。我们 假设"主节点-A"锁
+     注册地节点是"master-00001"，"主节点-B"注册的节点是"master-00002"，
+     注册完以后进行选举，编号最 小的节点将在选举中获胜获得锁成为主节点，
+     也就是我们的"主节点-A"将会获得锁成为主节点，然后"主节点-B"将被阻
+     塞成为一个备用节点。那么，通过这 种方式就完成了对两个Master进程的
+     调度。
+
+     如果"主节点-A"挂了，这时候他所注册的节点将被自动删除，ZooKeeper会
+     自动感知节点的变化，然后再次发出选举，这时候"主节点-B"将在选举中
+     获胜，替代"主节点-A"成为主节点。
+
+     如果主节点恢复了，他会再次向ZooKeeper注册一个节点，这时候他注册的
+     节点将会是"master-00003"，ZooKeeper会感知节点的变化再次发动选举，
+     这时候"主节点-B"在选举中会再次获胜继续担任"主节点"，"主节点-A"会
+     担任备用节点。
+    
+** 参考
+   - http://www.cnblogs.com/wuxl360/p/5817471.html
+* Kafka
+* Hadoop
+** HDFS
+   hdfs是大数据系统的基础，它提供了基本的存储功能，由于底层数据的分布
+   式存储，上层任务也可以利用数据的本地性进行分布式计算。hdfs思想上很
+   简单，就是namenode负责数据存储位置的记录，datanode负责数据的存储。
+   使用者client会先访问namenode询问数据存在哪，然后去datanode存储；写
+   流程也基本类似，会先在namenode上询问写到哪，然后把数据存储到对应的
+   datanode上。所以namenode作为整个系统的灵魂，一旦它挂掉了，整个系统
+   也就无法使用了。在运维中，针对namenode的高可用变得十分关键。
+
+*** HDFS的概念和特性
+*** HDFS的shell操作
+*** HDFS的工作机制
+*** HDFS的Java应用开发
+
+** MapReduce
+*** WordCount示例程序
+*** MapReduce内部的运行机制
+    - MapReduce程序运行流程解析
+    - MapTask并发数的决定机制
+    - MapReduce中的combiner组件应用
+    - MapReduce中的序列化框架及应用
+    - MapReduce中的排序
+    - MapReduce中的自定义分区实现
+    - MapReduce的shuffle机制
+    - MapReduce利用数据压缩进行优化
+    - MapReduce程序与YARN之间的关系
+    - MapReduce参数优化
+***  MapReduce的Java应用开发
+** 生态圈 
+   [[file:d:/program/blog/assets/hadoop-ecosystem.png][hadoop-ecosystem]]
+
+** 参考
+   - https://www.cnblogs.com/xing901022/p/6195422.html
+
+* HBase
+  HBase是一个高可靠、高性能、面向列、可伸缩的分布式数据库，是谷歌
+  BigTable的开源实现，主要用来存储非结构化和半结构化的松散数据。HBase
+  的目标是处理非常庞大的表，可以通过水平扩展的方式，利用廉价计算机集群
+  处理由超过10亿行数据和数百万列元素组成的数据表
+  
+  HBase可以直接使用本地文件系统或者Hadoop作为数据存储方式，不过为了提
+  高数据可靠性和系统的健壮性，发挥HBase处理大数据量等功能，需要使用
+  Hadoop作为文件系统。与Hadoop一样，HBase目标主要依靠横向扩展，通过不
+  断增加廉价的商用服务器来增加计算和存储能力。
+
+** 参考
+   - https://www.jianshu.com/p/34ec406eb40d
+
+* Hive/Impala
+  Hive是一个构建于Hadoop顶层的数据仓库工具，由Facebook公司开发，并在
+  2008年8月开源。Hive在某种程度上可以看作是用户编程接口，其本身并不存
+  储和处理数据，而是依赖HDFS来存储数据，依赖MapReduce来处理数据。Hive
+  定义了简单的类似SQL的查询语言——HiveQL，它与大部分SQL语法兼容，但是，
+  并不完全支持SQL标准，比如，HiveSQL不支持更新操作，也不支持索引和事务，
+  它的子查询和连接操作也存在很多局限。
+
+  HiveQL语句可以快速实现简单的MapReduce任务，这样用户通过编写的HiveQL
+  语句就可以运行MapReduce任务，不必编写复杂的MapReduce应用程序。对于
+  Java开发工程师而言，就不必花费大量精力在记忆常见的数据运算与底层的
+  MapReduce Java API的对应关系上；对于DBA来说，可以很容易把原来构建在
+  关系数据库上的数据仓库应用程序移植到Hadoop平台上。所以说，Hive是一个
+  可以有效、合理、直观地组织和使用数据的分析工具。
+
+  hive基于hdfs构建了数据仓库系统，它以hdfs作为存储，依赖于数据库(嵌入
+  式的数据库derby或者独立的数据mysql或oracle)存储表schema信息，并完成
+  基于sql自动解析创建mapreduce任务(由于mapreduce计算效率比较差，目前官
+  方推荐的是底层计算模型采用tez或者spark)。所以hive可以理解为：hdfs原
+  始存储+DB Schema信息存储+SQL解析引擎+底层计算框架组成的数据仓库。
+
+** Impala
+   Hive 作为现有比较流行的数据仓库分析工具之一，得到了广泛的应用，但是
+   由于Hive采用MapReduce 来完成批量数据处理，因此，实时性不好，查询延
+   迟较高。Impala 作为新一代开源大数据分析引擎，支持实时计算，它提供了
+   与Hive 类似的功能，并在性能上比Hive高出3~30 倍。Impala 发展势头迅猛，
+   甚至有可能会超过Hive 的使用率而成为Hadoop 上最流行的实时计算平台。
+
+   Hive 与Impala 的不同点总结如下：
+   1. Hive 比较适合进行长时间的批处理查询分析，而Impala 适合进行实时交
+      互式SQL 查询。
+
+   2. Hive 依赖于MapReduce 计算框架，执行计划组合成管道型的MapReduce
+      任务模式进行执行，而Impala 则把执行计划表现为一棵完整的执行计划
+      树，可以更自然地分发执行计划到各个Impalad执行查询。
+
+   3. Hive在执行过程中，如果内存放不下所有数据，则会使用外存，以保证查
+      询能顺序执行完成，而Impala在遇到内存放不下数据时，不会利用外存，
+      所以，Impala目前处理查询时会受到一定的限制。
+
+   Hive与Impala的相同点总结如下：
+   1. Hive与Impala使用相同的存储数据池，都支持把数据存储于HDFS和HBase
+      中，其中，HDFS支持存储TEXT、RCFILE、PARQUET、AVRO、ETC等格式的数
+      据，HBase存储表中记录。
+
+   2. Hive与Impala使用相同的元数据。
+
+   3. Hive与Impala中对SQL的解释处理比较相似，都是通过词法分析生成执行计划。
+
+   总的来说，Impala的目的不在于替换现有的MapReduce工具，把Hive与Impala
+   配合使用效果最佳，可以先使用Hive进行数据转换处理，之后再使用Impala
+   在Hive处理后的结果数据集上进行快速的数据分析。
+
+** 参考
+   - https://www.jianshu.com/p/34ec406eb40d
+   - https://www.cnblogs.com/xing901022/p/6195422.html
+
+* PIG
+  Pig 是Hadoop 生态系统的一个组件，提供了类似SQL 的Pig Latin 语言（包
+  含Filter、GroupBy、Join、OrderBy 等操作，同时也支持用户自定义函数），
+  允许用户通过编写简单的脚本来实现复杂的数据分析，而不需要编写复杂的
+  MapReduce 应用程序，Pig 会自动把用户编写的脚本转换成MapReduce 作业在
+  Hadoop 集群上运行，而且具备对生成的MapReduce程序进行自动优化的功能，
+  所以，用户在编写Pig 程序的时候，不需要关心程序的运行效率，这就大大减
+  少了用户编程时间。因此，通过配合使用Pig 和Hadoop，在处理海量数据时就
+  可以实现事半功倍的效果，比使用Java、C++等语言编写MapReduce 程序的难
+  度要小很多，并且用更少的代码量实现了相同的数据处理分析功能。Pig 可以
+  加载数据、表达转换数据以及存储最终结果，因此，在企业实际应用中，Pig
+  通常用于ETL（Extraction、Transformation、Loading）过程，即来自各个不
+  同数据源的数据被收集过来以后，采用Pig 进行统一加工处理，然后加载到数
+  据仓库Hive 中，由Hive 实现对海量数据的分析。需要特别指出的是，每种数
+  据分析工具都有一定的局限性，Pig 的设计和MapReduce 一样，都是面向批处
+  理的，因此，Pig 并不适合所有的数据处理任务，特别是当需要查询大数据集
+  中的一小部分数据时，Pig 仍然需要对整个或绝大部分数据集进行扫描，因此，
+  实现性能不会很好。
+
+** 参考
+   - https://www.jianshu.com/p/34ec406eb40d
+
+* Tez
+  Tez 是Apache 开源的支持DAG 作业的计算框架，通过DAG 作业的方式运行
+  MapReduce 作业，提供了程序运行的整体处理逻辑，就可以去除工作流当中多
+  余的Map 阶段，减少不必要的操作，提升数据处理的性能。Hortonworks把Tez
+  应用到数据仓库Hive 的优化中，使得性能提升了约100 倍。
+
+  Tez在解决Hive、Pig延迟大、性能低等问题的思路，是和那些支持实时交互式
+  查询分析的产品（如Impala、Dremel和Drill等）是不同的。Impala、Dremel
+  和Drill的解决问题思路是抛弃MapReduce计算框架，不再将类似SQL语句的
+  HiveQL或者Pig语句翻译成MapReduce程序，而是采用与商用并行关系数据库类
+  似的分布式查询引擎，可以直接从HDFS或者HBase中用SQL语句查询数据，而不
+  需要把SQL语句转化成MapReduce任务来执行，从而大大降低了延迟，很好地满
+  足了实时查询的要求。但是，Tez则不同，比如，针对Hive数据仓库进行优化
+  的“Tez+Hive”解决方案，仍采用MapReduce计算框架，但是对DAG的作业依赖
+  关系进行了裁剪，并将多个小作业合并成一个大作业，这样，不仅计算量减少
+  了，而且写HDFS次数也会大大减少。
+
+** 参考
+   - https://www.jianshu.com/p/34ec406eb40d
+
+* Spark
+  spark是现在大数据中应用最多的计算模型，它与java8的stream编程有相同的
+  风格。封装了很多的计算方法和模型，以延迟执行的方式，在真正需要执行的
+  时候才进行运算。既可以有效的做计算过程的容错，也可以改善我们的编程模
+  型。
+
+** 参考
+   - https://www.cnblogs.com/xing901022/p/6195422.html
+  
+* Flink
+  Apache Flink是一个面向分布式数据流处理和批量数据处理的开源计算平台，
+  它能够基于同一个Flink运行时（Flink Runtime），提供支持流处理和批处理
+  两种类型应用的功能。
+
+  现有的开源计算方案，会把流处理和批处理作为两种不同的应用类型，因为他
+  们它们所提供的SLA是完全不相同的：
+  - 流处理一般需要支持低延迟、Exactly-once保证，
+  - 批处理需要支持高吞吐、高效处理。
+  
+  所以在实现的时候通常是分别给出两套实现方法，或者通过一个独立的开源框
+  架来实现其中每一种处理方案。例如，实现批处理的开源方案有MapReduce、
+  Tez、Crunch、Spark，实现流处理的开源方案有Samza、Storm。
+
+  Flink在实现流处理和批处理时，与传统的一些方案完全不同，它从另一个视
+  角看待流处理和批处理，将二者统一起来：Flink是完全支持流处理，也就是
+  说作为流处理看待时输入数据流是无界的；批处理被作为一种特殊的流处理，
+  只是它的输入数据流被定义为有界的。基于同一个Flink运行时（Flink
+  Runtime），分别提供了流处理和批处理API，而这两种API也是实现上层面向
+  流处理、批处理类型应用框架的基础。
+
+** 基本概念
+*** Stream & Transformation & Operator
+    用户实现的Flink程序是由Stream和Transformation这两个基本构建块组成，
+    其中Stream是一个中间结果数据，而Transformation是一个操作，它对一个
+    或多个输入Stream进行计算处理，输出一个或多个结果Stream。当一个
+    Flink程序被执行的时候，它会被映射为Streaming Dataflow。一个
+    Streaming Dataflow是由一组Stream和Transformation Operator组成，它
+    类似于一个DAG图，在启动的时候从一个或多个Source Operator开始，结束
+    于一个或多个Sink Operator。
+
+*** Parallel Dataflow
+    在Flink中，程序天生是并行和分布式的：一个Stream可以被分成多个
+    Stream分区（Stream Partitions），一个Operator可以被分成多个
+    Operator Subtask，每一个Operator Subtask是在不同的线程中独立执行的。
+    一个Operator的并行度，等于Operator Subtask的个数，一个Stream的并行
+    度总是等于生成它的Operator的并行度。
+
+*** Task & Operator Chain
+    在Flink分布式执行环境中，会将多个Operator Subtask串起来组成一个
+    Operator Chain，实际上就是一个执行链，每个执行链会在TaskManager上
+    一个独立的线程中执行。
+
+*** Time & Window
+    Flink支持基于时间窗口操作，也支持基于数据的窗口操作。
+
+    基于时间的窗口操作，在每个相同的时间间隔对Stream中的记录进行处理，
+    通常各个时间间隔内的窗口操作处理的记录数不固定；而基于数据驱动的窗
+    口操作，可以在Stream中选择固定数量的记录作为一个窗口，对该窗口中的
+    记录进行处理。
+
+    有关窗口操作的不同类型，可以分为如下几种：倾斜窗口（Tumbling
+    Windows，记录没有重叠）、滑动窗口（Slide Windows，记录有重叠）、会
+    话窗口（Session Windows）。
+
+** 基本架构
+   Flink系统的架构与Spark类似，是一个基于Master-Slave风格的架构。Flink
+   集群启动时，会启动一个JobManager进程、至少一个TaskManager进程。在
+   Local模式下，会在同一个JVM内部启动一个JobManager进程和TaskManager进
+   程。当Flink程序提交后，会创建一个Client来进行预处理，并转换为一个并
+   行数据流，这是对应着一个Flink Job，从而可以被JobManager和
+   TaskManager执行。在实现上，Flink基于Actor实现了JobManager和
+   TaskManager，所以JobManager与TaskManager之间的信息交换，都是通过事
+   件的方式来进行处理。
+
+   Flink系统主要包含如下3个主要的进程：
+   - JobManager
+
+     JobManager是Flink系统的协调者，它负责接收Flink Job，调度组成Job的
+     多个Task的执行。同时，JobManager还负责收集Job的状态信息，并管理
+     Flink集群中从节点TaskManager。
+
+   - TaskManager
+     
+     TaskManager也是一个Actor，它是实际负责执行计算的Worker，在其上执
+     行Flink Job的一组Task。每个TaskManager负责管理其所在节点上的资源
+     信息，如内存、磁盘、网络，在启动的时候将资源的状态向JobManager汇
+     报。
+
+   - Client
+     
+     当用户提交一个Flink程序时，会首先创建一个Client，该Client首先会对
+     用户提交的Flink程序进行预处理，并提交到Flink集群中处理，所以
+     Client需要从用户提交的Flink程序配置中获取JobManager的地址，并建立
+     到JobManager的连接，将Flink Job提交给JobManager。Client会将用户提
+     交的Flink程序组装一个JobGraph， 并且是以JobGraph的形式提交的。一
+     个JobGraph是一个Flink Dataflow，它由多个JobVertex组成的DAG。其中，
+     一个JobGraph包含了一个Flink程序的如下信息：JobID、Job名称、配置信
+     息、一组JobVertex等。
+   
+   
+*** 组件栈
+    |--------+------------------------------------------+---------------------------------------------------------+-----------------|
+    | Libs   | CEP(Event Processing), Table(Relational) | FlinkML(ML), Gelly(Graph Processing), Table(Relational) |                 |
+    | APIs   | DataStream API(Stream Processing)        | DataSet API(Batch Processing                            |                 |
+    |--------+------------------------------------------+---------------------------------------------------------+-----------------|
+    | Core   | Runtime(Distributed Streaming Dataflow)  |                                                         |                 |
+    |--------+------------------------------------------+---------------------------------------------------------+-----------------|
+    | Deploy | Local(Single JVM)                        | Cluster(standalone, YARN)                               | Cloud(GCE, EC2) |
+    |--------+------------------------------------------+---------------------------------------------------------+-----------------|
+
+** 内部原理
+*** 容错机制
+    Flink基于Checkpoint机制实现容错，它的原理是不断地生成分布式
+    Streaming数据流Snapshot。在流处理失败时，通过这些Snapshot可以恢复
+    数据流处理。理解Flink的容错机制，首先需要了解一下Barrier这个概念：
+    
+    Stream Barrier是Flink分布式Snapshotting中的核心元素，它会作为数据
+    流的记录被同等看待，被插入到数据流中，将数据流中记录的进行分组，并
+    沿着数据流的方向向前推进。每个Barrier会携带一个Snapshot ID，属于该
+    Snapshot的记录会被推向该Barrier的前方。因为Barrier非常轻量，所以并
+    不会中断数据流。
+
+*** 调度机制
+    在JobManager端，会接收到Client提交的JobGraph形式的Flink Job，
+    JobManager会将一个JobGraph转换映射为一个ExecutionGraph。
+    
+*** 迭代机制
+    机器学习和图计算应用，都会使用到迭代计算，Flink通过在迭代Operator
+    中定义Step函数来实现迭代算法，这种迭代算法包括Iterate和Delta
+    Iterate两种类型，在实现上它们反复地在当前迭代状态上调用Step函数，
+    直到满足给定的条件才会停止迭代。
+    
+** Backpressure监控
+   Backpressure在流式计算系统中会比较受到关注，因为在一个Stream上进行
+   处理的多个Operator之间，它们处理速度和方式可能非常不同，所以就存在
+   上游Operator如果处理速度过快，下游Operator处可能机会堆积Stream记录，
+   严重会造成处理延迟或下游Operator负载过重而崩溃（有些系统可能会丢失
+   数据）。因此，对下游Operator处理速度跟不上的情况，如果下游Operator
+   能够将自己处理状态传播给上游Operator，使得上游Operator处理速度慢下
+   来就会缓解上述问题，比如通过告警的方式通知现有流处理系统存在的问题。
+
+   
+** 参考
+   - http://www.aboutyun.com/thread-18491-1-1.html
+   - http://www.aboutyun.com/thread-14483-1-1.html
+
+* Spark vs Flink
+  Spark是一种快速、通用的计算集群系统，Spark提出的最主要抽象概念是弹性
+  分布式数据集(RDD)，它是一个元素集合，划分到集群的各个节点上，可以被
+  并行操作。用户也可以让Spark保留一个RDD在内存中，使其能在并行操作中被
+  有效的重复使用。
+
+  Spark 1.4特点如下所示： 
+  1. Spark为应用提供了REST API来获取各种信息，包括jobs、stages、tasks、
+     storage info等。
+  2. Spark Streaming增加了UI，可以方便用户查看各种状态，另外与Kafka的
+     融合也更加深度，加强了对Kinesis的支持。
+  3. Spark SQL（DataFrame）添加ORCFile类型支持，另外还支持所有的Hive
+     metastore。
+  4. Spark ML/MLlib的ML pipelines愈加成熟，提供了更多的算法和工具。
+  5. Tungsten项目的持续优化，特别是内存管理、代码生成、垃圾回收等方面
+     都有很多改进。
+  6. SparkR发布，更友好的R语法支持。
+
+  Flink是可扩展的批处理和流式数据处理的数据处理平台，设计思想主要来源
+  于Hadoop、MPP数据库、流式计算系统等，支持增量迭代计算。
+
+  Flink 0.9特点如下所示： 
+  1. DataSet API 支持Java、Scala和Python。 
+  2. DataStream API支持Java and Scala。 
+  3. Table API支持类SQL。 
+  4. 有机器学习和图处理（Gelly）的各种库。 
+  5. 有自动优化迭代的功能，如有增量迭代。 
+  6. 支持高效序列化和反序列化，非常便利。 
+  7. 与Hadoop兼容性很好。
+
+** 分析对比
+*** 性能对比
+*** 流式计算比较 
+*** 是否与Hadoop兼容 
+*** SQL支持 
+*** 计算迭代 
+
+** 参考
+   - http://www.aboutyun.com/thread-14483-1-1.html
+* Sqoop
+  Sqoop是一款开源的工具，主要用于在Hadoop(Hive)与传统的数据库(mysql、
+  postgresql...)间进行数据的传递，可以将一个关系型数据库（例如 ：
+  MySQL ,Oracle ,Postgres等）中的数据导进到Hadoop的HDFS中，也可以将
+  HDFS的数据导进到关系型数据库中。
+
+** 参考
+   - https://www.jianshu.com/p/34ec406eb40d
+
+* Flume
+  flume 作为 cloudera 开发的实时日志收集系统，受到了业界的认可与广泛应
+  用。
+
+  flume是一个分布式、可靠、和高可用的海量日志采集、聚合和传输的系统。
+  支持在日志系统中定制各类数据发送方，用于收集数据;同时，Flume提供对数
+  据进行简单处理，并写到各种数据接受方(比如文本、HDFS、Hbase等)的能力
+  。　
+
+  flume的数据流由事件(Event)贯穿始终。事件是Flume的基本数据单位，它携
+  带日志数据(字节数组形式)并且携带有头信息，这些Event由Agent外部的
+  Source生成，当Source捕获事件后会进行特定的格式化，然后Source会把事件
+  推入(单个或多个)Channel中。你可以把Channel看作是一个缓冲区，它将保存
+  事件直到Sink处理完该事件。Sink负责持久化日志或者把事件推向另一个
+  Source。
+
+  flume的可靠性：当节点出现故障时，日志能够被传送到其他节点上而不会丢
+  失。Flume提供了三种级别的可靠性保障，从强到弱依次分别为：end-to-end
+  （收到数据agent首先将event写到磁盘上，当数据传送成功后，再删除；如果
+  数据发送失败，可以重新发送。），Store on failure（这也是scribe采用的
+  策略，当数据接收方crash时，将数据写到本地，待恢复后，继续发送），
+  Besteffort（数据发送到接收方后，不会进行确认）。
+
+  flume的可恢复性：还是靠Channel。推荐使用FileChannel，事件持久化在本
+  地文件系统里(性能较差)。
+
+** 参考
+   - http://www.aboutyun.com/thread-8917-1-1.html
+* Oozie
+  Oozie提供了大数据场景下各种任务的调度，比如shell脚本、spark任务、
+  mapreduce任务、sqoop任务、hive查询以及普通的java程序等等。它的编译是
+  生态圈里面最复杂的，由于以来的各个版本不同，需要指定特定的版本，因此
+  没有成型的一键部署包。
+  
+** 参考
+   - https://www.cnblogs.com/xing901022/p/6195422.html
+
+* Hue
